@@ -22,6 +22,9 @@ def load_config(path: Path) -> dict[str, Any]:
 
 
 def build_lora_config(config: dict[str, Any]):
+    if config.get("adapter_path"):
+        return None
+
     lora = config.get("lora", {})
     if not lora.get("enabled", False):
         return None
@@ -85,6 +88,45 @@ def build_training_args(config: dict[str, Any]):
     return GRPOConfig(**filtered_args)
 
 
+def resolve_dtype(dtype_name: str):
+    import torch
+
+    if dtype_name == "auto":
+        return "auto"
+    if dtype_name in {"float16", "fp16"}:
+        return torch.float16
+    if dtype_name in {"bfloat16", "bf16"}:
+        return torch.bfloat16
+    if dtype_name in {"float32", "fp32"}:
+        return torch.float32
+    raise ValueError(f"unknown torch dtype: {dtype_name}")
+
+
+def load_model(config: dict[str, Any]):
+    adapter_path = config.get("adapter_path")
+    if not adapter_path:
+        return str(config["model_name_or_path"])
+
+    try:
+        import torch
+        from peft import PeftModel
+        from transformers import AutoModelForCausalLM
+    except ImportError as exc:  # pragma: no cover - train extra only
+        raise RuntimeError("Install training dependencies with `uv sync --extra train`.") from exc
+
+    model_config = config.get("model", {})
+    dtype = resolve_dtype(str(model_config.get("torch_dtype", "auto")))
+    model = AutoModelForCausalLM.from_pretrained(
+        str(config["model_name_or_path"]),
+        dtype=dtype,
+    )
+    if torch.cuda.is_available():
+        model = model.to("cuda")
+    model = PeftModel.from_pretrained(model, str(adapter_path), is_trainable=True)
+    model.config.use_cache = False
+    return model
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
@@ -101,7 +143,7 @@ def main() -> None:
     training_args = build_training_args(config)
 
     trainer = GRPOTrainer(
-        model=str(config["model_name_or_path"]),
+        model=load_model(config),
         args=training_args,
         train_dataset=dataset,
         reward_funcs=[
