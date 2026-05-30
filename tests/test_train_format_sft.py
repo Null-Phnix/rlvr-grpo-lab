@@ -1,4 +1,11 @@
-from rlvr_lab.train_format_sft import format_sft_completion, tokenize_prompt_completion
+import pytest
+
+from rlvr_lab.train_format_sft import (
+    build_sft_completion,
+    format_gsm8k_rationale_completion,
+    format_sft_completion,
+    tokenize_prompt_completion,
+)
 
 
 class FakeTokenizer:
@@ -8,6 +15,25 @@ class FakeTokenizer:
 
 def test_format_sft_completion_adds_final_line_and_eos() -> None:
     assert format_sft_completion(" 42 ", "<eos>") == "\n#### 42<eos>"
+
+
+def test_format_gsm8k_rationale_completion_preserves_work_and_final_line() -> None:
+    answer = "First add.\n#### 42"
+    assert format_gsm8k_rationale_completion(answer, "<eos>") == "\nFirst add.\n#### 42<eos>"
+
+
+def test_build_sft_completion_supports_styles() -> None:
+    row = {"answer": "First add.\n#### 42"}
+
+    assert build_sft_completion(row, "final_only", "<eos>") == "\n#### 42<eos>"
+    assert build_sft_completion(row, "gsm8k_rationale", "<eos>") == (
+        "\nFirst add.\n#### 42<eos>"
+    )
+
+
+def test_build_sft_completion_rejects_unknown_style() -> None:
+    with pytest.raises(ValueError, match="unknown completion_style"):
+        build_sft_completion({"answer": "#### 42"}, "nope", None)
 
 
 def test_tokenize_prompt_completion_masks_prompt_tokens() -> None:

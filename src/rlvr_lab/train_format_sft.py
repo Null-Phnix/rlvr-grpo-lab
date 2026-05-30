@@ -21,6 +21,19 @@ def format_sft_completion(answer: str, eos_token: str | None) -> str:
     return f"\n#### {answer.strip()}{eos}"
 
 
+def format_gsm8k_rationale_completion(answer: str, eos_token: str | None) -> str:
+    eos = eos_token or ""
+    return f"\n{answer.strip()}{eos}"
+
+
+def build_sft_completion(row: dict[str, Any], completion_style: str, eos_token: str | None) -> str:
+    if completion_style == "final_only":
+        return format_sft_completion(gsm8k_gold_answer(str(row["answer"])), eos_token)
+    if completion_style == "gsm8k_rationale":
+        return format_gsm8k_rationale_completion(str(row["answer"]), eos_token)
+    raise ValueError(f"unknown completion_style: {completion_style}")
+
+
 def resolve_dtype(dtype_name: str):
     import torch
 
@@ -121,14 +134,12 @@ def load_format_sft_dataset(config: dict[str, Any], tokenizer):
         dataset = dataset.select(range(min(int(limit), len(dataset))))
 
     prompt_style = dataset_config.get("prompt_style", "final_only")
+    completion_style = dataset_config.get("completion_style", "final_only")
     max_seq_length = int(config.get("training", {}).get("max_seq_length", 512))
     rows = []
     for row in dataset:
         prompt = make_prompt(str(row["question"]), prompt_style=prompt_style)
-        completion = format_sft_completion(
-            gsm8k_gold_answer(str(row["answer"])),
-            tokenizer.eos_token,
-        )
+        completion = build_sft_completion(dict(row), completion_style, tokenizer.eos_token)
         rows.append(
             tokenize_prompt_completion(
                 tokenizer=tokenizer,

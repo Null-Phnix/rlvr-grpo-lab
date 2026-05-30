@@ -1,0 +1,36 @@
+seed: 42
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+model:
+  torch_dtype: float16
+dataset:
+  name: openai/gsm8k
+  config: main
+  split: train
+  limit: 128
+  prompt_style: strict_final_line
+  completion_style: gsm8k_rationale
+output_dir: outputs/local_4060_rationale_sft_warmup
+training:
+  max_steps: 60
+  learning_rate: 0.0002
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 2
+  max_seq_length: 768
+  logging_steps: 5
+  save_steps: 60
+  bf16: false
+  fp16: true
+  gradient_checkpointing: true
+lora:
+  enabled: true
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
