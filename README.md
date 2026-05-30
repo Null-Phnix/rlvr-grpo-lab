@@ -56,6 +56,11 @@ For the full training stack:
 After syncing the train extras:
 
 ```bash
+~/.local/bin/uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_local_4060.yaml
+```
+
+```bash
 ~/.local/bin/uv run accelerate launch \
   --config_file configs/accelerate_single_gpu.yaml \
   -m rlvr_lab.train_grpo \
@@ -63,6 +68,15 @@ After syncing the train extras:
 ```
 
 This config is intentionally conservative. It is for correctness, logging, and memory profiling, not leaderboard scores.
+
+Evaluate the LoRA checkpoint after training:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_local_4060.yaml \
+  --adapter-path outputs/local_4060_smoke/checkpoint-25 \
+  --output-dir outputs/evals/local_4060_post_smoke
+```
 
 ## Cloud 7B Run
 
