@@ -5,7 +5,7 @@ dataset:
   config: main
   split: train
   limit: 128
-  prompt_style: answer_first
+  prompt_style: think_answer
 output_dir: outputs/local_4060_format_smoke
 training:
   max_steps: 25
@@ -14,7 +14,7 @@ training:
   gradient_accumulation_steps: 4
   num_generations: 2
   max_prompt_length: 512
-  max_completion_length: 96
+  max_completion_length: 256
   temperature: 0.8
   top_p: 0.95
   logging_steps: 1
