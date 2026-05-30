@@ -13,6 +13,13 @@ ANSWER_FIRST_PROMPT = (
     "The final line must be exactly: #### <number>"
 )
 
+STRICT_FINAL_LINE_PROMPT = (
+    "Solve the math problem with concise reasoning. "
+    "Write the final answer as the last non-empty line. "
+    "That last line must be exactly: #### <number>. "
+    "Do not write anything after it."
+)
+
 
 def gsm8k_gold_answer(answer: str) -> str:
     """Extract the GSM8K final answer after the #### marker."""
@@ -26,6 +33,8 @@ def make_prompt(question: str, prompt_style: str = "think_answer") -> str:
         return f"{question}\n\nFinal answer:"
     if prompt_style == "answer_first":
         return f"{ANSWER_FIRST_PROMPT}\n\nProblem:\n{question}\n\nAnswer:"
+    if prompt_style == "strict_final_line":
+        return f"{STRICT_FINAL_LINE_PROMPT}\n\nProblem:\n{question}\n\nSolution:"
     if prompt_style == "think_answer":
         return f"{SYSTEM_PROMPT}\n\nProblem:\n{question}\n\nSolution:"
     raise ValueError(f"unknown prompt_style: {prompt_style}")

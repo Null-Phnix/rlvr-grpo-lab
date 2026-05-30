@@ -1,0 +1,16 @@
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+model:
+  torch_dtype: float16
+  device_map: auto
+dataset:
+  name: openai/gsm8k
+  config: main
+  split: test
+  limit: 32
+  prompt_style: think_answer
+generation:
+  batch_size: 1
+  max_prompt_length: 512
+  max_new_tokens: 128
+  do_sample: false
+output_dir: outputs/evals/local_4060_fast

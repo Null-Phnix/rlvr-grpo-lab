@@ -18,6 +18,13 @@ def test_make_prompt_supports_answer_first() -> None:
     assert "What is 40 + 2?" in prompt
 
 
+def test_make_prompt_supports_strict_final_line() -> None:
+    prompt = make_prompt("What is 40 + 2?", prompt_style="strict_final_line")
+    assert "last non-empty line" in prompt
+    assert "Do not write anything after it." in prompt
+    assert "What is 40 + 2?" in prompt
+
+
 def test_make_prompt_rejects_unknown_style() -> None:
     try:
         make_prompt("2+2?", prompt_style="nope")
