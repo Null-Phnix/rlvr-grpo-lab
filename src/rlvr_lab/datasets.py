@@ -5,25 +5,25 @@ from typing import Any
 
 SYSTEM_PROMPT = (
     "You are solving math problems. Reason briefly. "
-    "End with the final answer in the exact format: #### <answer>"
+    "End with the numeric final answer in this exact format, for example: #### 42"
 )
 
 ANSWER_FIRST_PROMPT = (
     "Solve the problem. Keep the reasoning short. "
-    "The final line must be exactly: #### <number>"
+    "The final line must be exactly four hash marks, a space, and the numeric answer."
 )
 
 STRICT_FINAL_LINE_PROMPT = (
     "Solve the math problem with concise reasoning. "
     "Write the final answer as the last non-empty line. "
-    "That last line must be exactly: #### <number>. "
+    "That last line must look like this example: #### 42. "
     "Do not write anything after it."
 )
 
 FINAL_ONLY_PROMPT = (
     "Solve the math problem internally. "
     "Output exactly one line and no reasoning. "
-    "The line must be exactly: #### <number>"
+    "The line must look like this example: #### 42"
 )
 
 
