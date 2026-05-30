@@ -25,6 +25,13 @@ def test_make_prompt_supports_strict_final_line() -> None:
     assert "What is 40 + 2?" in prompt
 
 
+def test_make_prompt_supports_final_only() -> None:
+    prompt = make_prompt("What is 40 + 2?", prompt_style="final_only")
+    assert "Output exactly one line" in prompt
+    assert "#### <number>" in prompt
+    assert "What is 40 + 2?" in prompt
+
+
 def test_make_prompt_rejects_unknown_style() -> None:
     try:
         make_prompt("2+2?", prompt_style="nope")

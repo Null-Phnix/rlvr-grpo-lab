@@ -20,6 +20,12 @@ STRICT_FINAL_LINE_PROMPT = (
     "Do not write anything after it."
 )
 
+FINAL_ONLY_PROMPT = (
+    "Solve the math problem internally. "
+    "Output exactly one line and no reasoning. "
+    "The line must be exactly: #### <number>"
+)
+
 
 def gsm8k_gold_answer(answer: str) -> str:
     """Extract the GSM8K final answer after the #### marker."""
@@ -33,6 +39,8 @@ def make_prompt(question: str, prompt_style: str = "think_answer") -> str:
         return f"{question}\n\nFinal answer:"
     if prompt_style == "answer_first":
         return f"{ANSWER_FIRST_PROMPT}\n\nProblem:\n{question}\n\nAnswer:"
+    if prompt_style == "final_only":
+        return f"{FINAL_ONLY_PROMPT}\n\nProblem:\n{question}\n\nAnswer:"
     if prompt_style == "strict_final_line":
         return f"{STRICT_FINAL_LINE_PROMPT}\n\nProblem:\n{question}\n\nSolution:"
     if prompt_style == "think_answer":
