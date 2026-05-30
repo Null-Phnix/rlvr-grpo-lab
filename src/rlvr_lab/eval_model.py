@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 from rich.console import Console
+from rich.progress import track
 from rich.table import Table
 
 from rlvr_lab.datasets import load_math_dataset
@@ -146,8 +147,13 @@ def main() -> None:
     generation_config = config.get("generation", {})
     batch_size = int(generation_config.get("batch_size", 1))
     records: list[dict[str, Any]] = []
+    total_batches = (len(dataset) + batch_size - 1) // batch_size
 
-    for start in range(0, len(dataset), batch_size):
+    for start in track(
+        range(0, len(dataset), batch_size),
+        total=total_batches,
+        description="Evaluating",
+    ):
         batch = dataset[start : start + batch_size]
         prompts = list(batch["prompt"])
         ground_truths = list(batch["ground_truth"])

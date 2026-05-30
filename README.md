@@ -78,6 +78,21 @@ Evaluate the LoRA checkpoint after training:
   --output-dir outputs/evals/local_4060_post_smoke
 ```
 
+Compare two eval summaries:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.compare_evals \
+  outputs/evals/local_4060_baseline/summary.json \
+  outputs/evals/local_4060_post_smoke/summary.json
+```
+
+Prompt sweep configs:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.eval_model --config configs/eval_local_4060_plain.yaml
+~/.local/bin/uv run python -m rlvr_lab.eval_model --config configs/eval_local_4060_answer_first.yaml
+```
+
 ## Cloud 7B Run
 
 Use the cloud config only after the smoke run is stable:

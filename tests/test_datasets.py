@@ -12,6 +12,12 @@ def test_prepare_gsm8k_row_normalizes_prompt_and_ground_truth() -> None:
     assert prepared["ground_truth"] == "42"
 
 
+def test_make_prompt_supports_answer_first() -> None:
+    prompt = make_prompt("What is 40 + 2?", prompt_style="answer_first")
+    assert "final line must be exactly" in prompt
+    assert "What is 40 + 2?" in prompt
+
+
 def test_make_prompt_rejects_unknown_style() -> None:
     try:
         make_prompt("2+2?", prompt_style="nope")
