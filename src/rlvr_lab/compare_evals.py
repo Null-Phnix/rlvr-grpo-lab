@@ -11,10 +11,14 @@ from rich.table import Table
 METRICS = [
     "exact_accuracy",
     "final_format_rate",
+    "final_line_format_rate",
+    "trailing_text_rate",
     "missing_answer_rate",
     "avg_completion_chars",
     "exact_correct",
     "final_format_count",
+    "final_line_format_count",
+    "trailing_text_count",
 ]
 
 

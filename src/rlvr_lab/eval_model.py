@@ -123,6 +123,8 @@ def render_summary(summary: dict[str, Any]) -> None:
         "num_examples",
         "exact_accuracy",
         "final_format_rate",
+        "final_line_format_rate",
+        "trailing_text_rate",
         "missing_answer_rate",
         "avg_completion_chars",
     ]:

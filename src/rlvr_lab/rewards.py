@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 FINAL_RE = re.compile(r"####\s*([-+]?(?:\d[\d,]*)(?:\.\d+)?)")
+FINAL_LINE_RE = re.compile(r"^####\s*([-+]?(?:\d[\d,]*)(?:\.\d+)?)\s*$")
 BOXED_RE = re.compile(r"\\boxed\{([^{}]+)\}")
 NUMBER_RE = re.compile(r"[-+]?(?:\d[\d,]*)(?:\.\d+)?")
 
@@ -52,6 +53,28 @@ def extract_answer(text: str) -> str | None:
     return None
 
 
+def final_answer_line(text: str) -> str | None:
+    lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
+    if not lines:
+        return None
+    return lines[-1]
+
+
+def extract_final_line_answer(text: str) -> str | None:
+    line = final_answer_line(text)
+    if line is None:
+        return None
+    match = FINAL_LINE_RE.match(line)
+    return match.group(1) if match else None
+
+
+def has_text_after_final_marker(text: str) -> bool:
+    match = FINAL_RE.search(text)
+    if not match:
+        return False
+    return bool(text[match.end() :].strip())
+
+
 def math_correctness_reward(
     completions: list[Any],
     ground_truth: list[str],
@@ -80,5 +103,19 @@ def math_correctness_reward(
 def final_format_reward(completions: list[Any], **kwargs: Any) -> list[float]:
     return [
         1.0 if FINAL_RE.search(completion_text(completion)) else 0.0
+        for completion in completions
+    ]
+
+
+def final_line_format_reward(completions: list[Any], **kwargs: Any) -> list[float]:
+    return [
+        1.0 if extract_final_line_answer(completion_text(completion)) is not None else 0.0
+        for completion in completions
+    ]
+
+
+def trailing_text_penalty(completions: list[Any], **kwargs: Any) -> list[float]:
+    return [
+        -1.0 if has_text_after_final_marker(completion_text(completion)) else 0.0
         for completion in completions
     ]
