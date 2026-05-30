@@ -1,0 +1,84 @@
+from __future__ import annotations
+
+import re
+from decimal import Decimal, InvalidOperation
+from typing import Any
+
+FINAL_RE = re.compile(r"####\s*([-+]?(?:\d[\d,]*)(?:\.\d+)?)")
+BOXED_RE = re.compile(r"\\boxed\{([^{}]+)\}")
+NUMBER_RE = re.compile(r"[-+]?(?:\d[\d,]*)(?:\.\d+)?")
+
+
+def completion_text(completion: Any) -> str:
+    """Support TRL standard strings and conversational message dictionaries."""
+    if isinstance(completion, str):
+        return completion
+    if isinstance(completion, list) and completion:
+        first = completion[0]
+        if isinstance(first, dict):
+            return str(first.get("content", ""))
+    return str(completion)
+
+
+def normalize_answer(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip().replace(",", "")
+    cleaned = cleaned.strip("$% ")
+    if not cleaned:
+        return None
+    try:
+        number = Decimal(cleaned)
+    except InvalidOperation:
+        return cleaned.lower()
+    normalized = format(number.normalize(), "f")
+    if "." in normalized:
+        normalized = normalized.rstrip("0").rstrip(".")
+    return normalized
+
+
+def extract_answer(text: str) -> str | None:
+    final_match = FINAL_RE.search(text)
+    if final_match:
+        return final_match.group(1)
+
+    boxed_match = BOXED_RE.search(text)
+    if boxed_match:
+        return boxed_match.group(1)
+
+    numbers = NUMBER_RE.findall(text)
+    if numbers:
+        return numbers[-1]
+    return None
+
+
+def math_correctness_reward(
+    completions: list[Any],
+    ground_truth: list[str],
+    **kwargs: Any,
+) -> list[float]:
+    rewards = []
+    extracted = []
+    for completion, gold in zip(completions, ground_truth, strict=False):
+        predicted = normalize_answer(extract_answer(completion_text(completion)))
+        expected = normalize_answer(gold)
+        extracted.append(predicted or "[none]")
+        rewards.append(1.0 if predicted is not None and predicted == expected else 0.0)
+
+    log_extra = kwargs.get("log_extra")
+    if log_extra:
+        log_extra("gold_answer", list(ground_truth))
+        log_extra("extracted_answer", extracted)
+
+    log_metric = kwargs.get("log_metric")
+    if log_metric and rewards:
+        log_metric("exact_answer_accuracy", sum(rewards) / len(rewards))
+
+    return rewards
+
+
+def final_format_reward(completions: list[Any], **kwargs: Any) -> list[float]:
+    return [
+        1.0 if FINAL_RE.search(completion_text(completion)) else 0.0
+        for completion in completions
+    ]

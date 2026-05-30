@@ -1,0 +1,43 @@
+seed: 42
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+dataset:
+  name: openai/gsm8k
+  config: main
+  split: train
+  limit: 4096
+  prompt_style: think_answer
+output_dir: outputs/cloud_7b_grpo
+training:
+  max_steps: 1000
+  learning_rate: 0.000002
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8
+  num_generations: 4
+  max_prompt_length: 768
+  max_completion_length: 256
+  temperature: 0.9
+  top_p: 0.95
+  logging_steps: 5
+  save_steps: 100
+  bf16: true
+  fp16: false
+  gradient_checkpointing: true
+  use_vllm: false
+  beta: 0.0
+  loss_type: dr_grpo
+lora:
+  enabled: true
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+rewards:
+  correctness_weight: 1.0
+  format_weight: 0.2
