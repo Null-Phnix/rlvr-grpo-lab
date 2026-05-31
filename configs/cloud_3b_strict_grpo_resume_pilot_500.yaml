@@ -1,0 +1,36 @@
+seed: 42
+model_name_or_path: Qwen/Qwen2.5-3B-Instruct
+adapter_path: outputs/cloud_3b_strict_grpo_after_rationale_sft_pilot/checkpoint-100
+model:
+  torch_dtype: bfloat16
+dataset:
+  name: openai/gsm8k
+  config: main
+  split: train
+  limit: 512
+  prompt_style: strict_final_line
+output_dir: outputs/cloud_3b_strict_grpo_after_rationale_sft_pilot
+training:
+  resume_from_checkpoint: outputs/cloud_3b_strict_grpo_after_rationale_sft_pilot/checkpoint-100
+  max_steps: 500
+  learning_rate: 0.000005
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  num_generations: 4
+  max_prompt_length: 512
+  max_completion_length: 384
+  temperature: 0.8
+  top_p: 0.95
+  logging_steps: 5
+  save_steps: 100
+  bf16: true
+  fp16: false
+  gradient_checkpointing: true
+  use_vllm: false
+  beta: 0.0
+  loss_type: dr_grpo
+rewards:
+  correctness_weight: 2.0
+  format_weight: 0.0
+  final_line_weight: 0.5
+  trailing_penalty_weight: 1.0

@@ -88,6 +88,19 @@ def build_training_args(config: dict[str, Any]):
     return GRPOConfig(**filtered_args)
 
 
+def resolve_resume_from_checkpoint(config: dict[str, Any]) -> bool | str | None:
+    resume_from_checkpoint = config.get("training", {}).get("resume_from_checkpoint")
+    if resume_from_checkpoint in {None, False, ""}:
+        return None
+    if resume_from_checkpoint is True:
+        return True
+
+    checkpoint_path = Path(str(resume_from_checkpoint))
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"resume checkpoint does not exist: {checkpoint_path}")
+    return str(checkpoint_path)
+
+
 def resolve_dtype(dtype_name: str):
     import torch
 
@@ -154,7 +167,7 @@ def main() -> None:
         ],
         peft_config=build_lora_config(config),
     )
-    trainer.train()
+    trainer.train(resume_from_checkpoint=resolve_resume_from_checkpoint(config))
 
 
 if __name__ == "__main__":

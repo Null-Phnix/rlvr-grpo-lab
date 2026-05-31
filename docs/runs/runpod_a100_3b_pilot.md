@@ -72,7 +72,8 @@ The result does not beat the base model on loose exact accuracy yet, but it crea
 
 Use the same 3B branch, not 7B yet:
 
-- increase GRPO from 100 to 300-500 steps
+- resume GRPO from `outputs/cloud_3b_strict_grpo_after_rationale_sft_pilot/checkpoint-100`
+  using `configs/cloud_3b_strict_grpo_resume_pilot_500.yaml`
 - keep rationale SFT warmup
 - keep strict final-line reward and trailing penalty
 - monitor whether exact accuracy crosses the base strict-prompt baseline while strict final-line rate stays above 90%
