@@ -1,32 +1,64 @@
 # RLVR GRPO Lab
 
-Local-first RLVR/post-training workspace for reasoning models.
+Config-driven RLVR/GRPO post-training experiments for reasoning models, with verifiable math rewards, strict answer-contract evals, and sample-level error analysis.
 
-The immediate goal is not to claim a DeepSeek-R1 reproduction. The goal is to build a clean, inspectable GRPO loop with verifiable rewards, run it on tiny models locally, then scale the exact same harness to rented GPUs for 3B/7B experiments.
+This is not presented as a DeepSeek-R1 reproduction. The goal is narrower and more useful: build an inspectable training/eval harness, run cheap local smoke tests, then scale the same workflow to rented GPUs for 3B/7B experiments.
+
+## What This Repo Contains
+
+- GRPO training entrypoint with LoRA adapter support
+- optional SFT warmup path for answer-format experiments
+- verifiable GSM8K-style exact-answer rewards
+- strict final-line answer rewards and trailing-text penalties
+- config files for local RTX 4060 smoke runs and RunPod A100 3B pilots
+- eval outputs with `summary.json` and `samples.jsonl`
+- sample-level comparison tooling for wins/losses and formatting regressions
+- run notes and an experiment ledger for promoted experiments
+
+## Current Findings
+
+The first serious cloud run used `Qwen/Qwen2.5-3B-Instruct` on a RunPod A100-SXM4-80GB with a 512-example GSM8K training subset and a 128-example held-out eval.
+
+| Run | Exact | Strict Final Line | Trailing Text | Avg Chars | Read |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Base 3B strict prompt | 91/128 | 1/128 | 101/128 | 845.41 | Strong loose exact accuracy, bad output contract. |
+| Rationale SFT warmup | 81/128 | 122/128 | 0/128 | 269.34 | Format fixed, exact accuracy dropped. |
+| SFT -> GRPO pilot | 87/128 | 122/128 | 0/128 | 278.55 | Recovered some exact accuracy. |
+| SFT -> GRPO resume 500 | 87/128 | 123/128 | 0/128 | 281.06 | Exact plateaued. |
+| Checkpoint 500 -> final-line exact reward | 87/128 | 124/128 | 0/128 | 266.80 | Cleaner and shorter, exact still plateaued. |
+
+The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. The next experiment should start from the base 3B policy with fresh LoRA and final-line exact reward from the beginning.
+
+Detailed records:
+
+- [Experiment ledger](docs/runs/experiment_ledger.md)
+- [RunPod A100 3B pilot notes](docs/runs/runpod_a100_3b_pilot.md)
+
+## Next Experiment
+
+Ready-to-run config:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.train_grpo \
+  --config configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml
+```
+
+Eval it with:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_strict_final_128.yaml \
+  --adapter-path outputs/cloud_3b_base_final_line_exact_grpo_pilot/checkpoint-100 \
+  --output-dir outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_128
+```
+
+This test asks whether direct GRPO from the base 3B model can preserve the base model's reasoning quality while learning the strict final-line answer contract.
 
 ## Hardware Plan
 
-- MacBook: editing, docs, reward/eval development.
-- Linux RTX 4060 8GB: CUDA smoke tests with 0.5B/1.5B models.
-- Rented GPU: final 3B/7B runs once the loop is stable.
-
-## First Milestone
-
-Train a small Qwen base/instruct model on GSM8K-style prompts using:
-
-- exact-answer math reward
-- format reward
-- small max completion length
-- LoRA adapter training
-- reproducible config files
-
-Expected artifact:
-
-- baseline eval
-- 20-100 step GRPO smoke run
-- post-run eval
-- reward curves and sample completions
-- notes on reward hacking/failure cases
+- MacBook: editing, docs, reward/eval development
+- Linux RTX 4060 8GB: CUDA smoke tests with 0.5B/1.5B models
+- rented GPU: 3B/7B runs once the local loop and reward objective are stable
 
 ## Remote Bootstrap
 
@@ -36,7 +68,7 @@ From this directory on the Linux box:
 bash scripts/bootstrap_remote.sh
 ```
 
-That installs `uv` into `~/.local/bin` if needed, installs Python 3.12 through `uv`, and syncs the dev dependencies.
+That installs `uv` into `~/.local/bin` if needed, installs Python through `uv`, and syncs the dev dependencies.
 
 For the full training stack:
 
@@ -48,6 +80,7 @@ For the full training stack:
 
 ```bash
 ~/.local/bin/uv run python scripts/doctor.py
+~/.local/bin/uv run ruff check .
 ~/.local/bin/uv run pytest
 ```
 
@@ -78,6 +111,8 @@ Evaluate the LoRA checkpoint after training:
   --output-dir outputs/evals/local_4060_post_smoke
 ```
 
+## Analysis Tools
+
 Compare two eval summaries:
 
 ```bash
@@ -106,7 +141,7 @@ Prompt sweep configs:
 
 ## Cloud 7B Run
 
-Use the cloud config only after the smoke run is stable:
+Do not start with 7B blindly. Use the cloud 7B config only after the 3B base-policy branch improves held-out exact accuracy while keeping strict final-line format high.
 
 ```bash
 ~/.local/bin/uv run accelerate launch \
