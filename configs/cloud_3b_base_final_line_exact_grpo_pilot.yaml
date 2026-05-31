@@ -41,8 +41,8 @@ lora:
     - up_proj
     - down_proj
 rewards:
-  correctness_weight: 1.0
+  correctness_weight: 2.0
   final_line_correctness_weight: 3.0
-  format_weight: 0.2
-  final_line_weight: 1.0
-  trailing_penalty_weight: 1.0
+  format_weight: 0.0
+  final_line_weight: 0.2
+  trailing_penalty_weight: 0.3

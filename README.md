@@ -52,7 +52,7 @@ Eval it with:
   --output-dir outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_128
 ```
 
-This test asks whether direct GRPO from the base 3B model can preserve the base model's reasoning quality while learning the strict final-line answer contract.
+This test asks whether direct GRPO from the base 3B model can preserve the base model's reasoning quality while learning the strict final-line answer contract. The reward weights intentionally make correctness dominate pure formatting so the run does not simply recreate the SFT branch's length collapse.
 
 ## Hardware Plan
 

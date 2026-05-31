@@ -18,8 +18,36 @@ Held-out eval: `configs/eval_cloud_3b_strict_final_128.yaml`, 128 GSM8K test exa
 
 | Run | Config | Starting Point | Purpose | Run Status |
 | --- | --- | --- | --- | --- |
-| Base 3B final-line exact GRPO pilot | `configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Test whether direct GRPO can preserve base reasoning while learning the final-line contract. | Not run |
+| Base 3B final-line exact GRPO pilot | `configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Test whether direct GRPO can preserve base reasoning while learning the final-line contract without recreating the SFT length collapse. | Not run |
 
 ## Current Read
 
 The rationale-SFT branch taught the output contract but appears to have capped held-out exact accuracy below the base strict-prompt model. Longer GRPO and final-line exact reward both improved formatting details without moving exact accuracy. The next useful test is a fresh base-policy GRPO branch, not more training on the current SFT adapter chain.
+
+## Base-Policy GRPO Success Criteria
+
+The base model solved 91/128 held-out examples, but 77 of those 91 correct completions had trailing text after a final-answer marker and 69 included a `Human:` continuation. The next run should not optimize for brevity. It should preserve the useful reasoning while learning to stop after the final answer line.
+
+Primary checks after the base-policy run:
+
+- held-out exact accuracy should stay near or above the base model's 91/128
+- strict final-line format should improve substantially over the base model's 1/128
+- average completion length should not collapse toward the 266-281 character adapter range unless exact accuracy is preserved
+- compare against the base eval and manually inspect base-correct examples that the new run loses
+
+Required comparisons:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.compare_evals \
+  outputs/evals/cloud_3b_strict_final_128_baseline/summary.json \
+  outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_128/summary.json
+```
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.compare_samples \
+  outputs/evals/cloud_3b_strict_final_128_baseline \
+  outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_128 \
+  --baseline-label base \
+  --candidate-label base-grpo \
+  --output outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_128/comparison_vs_base.md
+```
