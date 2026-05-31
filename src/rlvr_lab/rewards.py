@@ -8,6 +8,7 @@ FINAL_RE = re.compile(r"####\s*([-+]?(?:\d[\d,]*)(?:\.\d+)?)")
 FINAL_LINE_RE = re.compile(r"^####\s*([-+]?(?:\d[\d,]*)(?:\.\d+)?)\s*$")
 BOXED_RE = re.compile(r"\\boxed\{([^{}]+)\}")
 NUMBER_RE = re.compile(r"[-+]?(?:\d[\d,]*)(?:\.\d+)?")
+ROLE_LABEL_RE = re.compile(r"\b(?:Human|Assistant|User|System)\s*:")
 
 
 def completion_text(completion: Any) -> str:
@@ -53,6 +54,11 @@ def extract_answer(text: str) -> str | None:
     return None
 
 
+def extract_marked_answer(text: str) -> str | None:
+    match = FINAL_RE.search(text)
+    return match.group(1) if match else None
+
+
 def final_answer_line(text: str) -> str | None:
     lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
     if not lines:
@@ -73,6 +79,10 @@ def has_text_after_final_marker(text: str) -> bool:
     if not match:
         return False
     return bool(text[match.end() :].strip())
+
+
+def has_role_label(text: str) -> bool:
+    return bool(ROLE_LABEL_RE.search(text))
 
 
 def math_correctness_reward(
@@ -124,6 +134,78 @@ def final_line_correctness_reward(
     return rewards
 
 
+def answer_marker_correctness_reward(
+    completions: list[Any],
+    ground_truth: list[str],
+    **kwargs: Any,
+) -> list[float]:
+    rewards = []
+    extracted = []
+    for completion, gold in zip(completions, ground_truth, strict=False):
+        predicted = normalize_answer(extract_marked_answer(completion_text(completion)))
+        expected = normalize_answer(gold)
+        extracted.append(predicted or "[none]")
+        rewards.append(1.0 if predicted is not None and predicted == expected else 0.0)
+
+    log_extra = kwargs.get("log_extra")
+    if log_extra:
+        log_extra("marked_answer", extracted)
+
+    log_metric = kwargs.get("log_metric")
+    if log_metric and rewards:
+        log_metric("marked_answer_exact_accuracy", sum(rewards) / len(rewards))
+
+    return rewards
+
+
+def answer_contract_progress_reward(
+    completions: list[Any],
+    ground_truth: list[str],
+    **kwargs: Any,
+) -> list[float]:
+    rewards = []
+    marker_count = 0
+    marker_correct_count = 0
+    clean_stop_count = 0
+    role_leak_count = 0
+
+    for completion, gold in zip(completions, ground_truth, strict=False):
+        text = completion_text(completion)
+        marked_answer = normalize_answer(extract_marked_answer(text))
+        expected = normalize_answer(gold)
+        has_marker = marked_answer is not None
+        marker_correct = has_marker and expected is not None and marked_answer == expected
+        clean_stop = has_marker and not has_text_after_final_marker(text)
+        role_leak = has_role_label(text)
+
+        marker_count += int(has_marker)
+        marker_correct_count += int(marker_correct)
+        clean_stop_count += int(clean_stop)
+        role_leak_count += int(role_leak)
+
+        score = 0.0
+        if has_marker:
+            score += 0.15
+        if marker_correct:
+            score += 0.50
+            if not role_leak:
+                score += 0.10
+            if clean_stop:
+                score += 0.25
+        rewards.append(score)
+
+    log_metric = kwargs.get("log_metric")
+    if log_metric and rewards:
+        total = len(rewards)
+        log_metric("contract_marker_rate", marker_count / total)
+        log_metric("contract_marker_exact_rate", marker_correct_count / total)
+        log_metric("contract_clean_stop_rate", clean_stop_count / total)
+        log_metric("contract_role_leak_rate", role_leak_count / total)
+        log_metric("answer_contract_progress", sum(rewards) / total)
+
+    return rewards
+
+
 def final_format_reward(completions: list[Any], **kwargs: Any) -> list[float]:
     return [
         1.0 if FINAL_RE.search(completion_text(completion)) else 0.0
@@ -143,3 +225,16 @@ def trailing_text_penalty(completions: list[Any], **kwargs: Any) -> list[float]:
         -1.0 if has_text_after_final_marker(completion_text(completion)) else 0.0
         for completion in completions
     ]
+
+
+def conversation_leak_penalty(completions: list[Any], **kwargs: Any) -> list[float]:
+    rewards = [
+        -1.0 if has_role_label(completion_text(completion)) else 0.0
+        for completion in completions
+    ]
+
+    log_metric = kwargs.get("log_metric")
+    if log_metric and rewards:
+        log_metric("conversation_leak_rate", abs(sum(rewards)) / len(rewards))
+
+    return rewards

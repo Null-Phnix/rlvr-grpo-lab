@@ -20,7 +20,7 @@ Held-out eval: `configs/eval_cloud_3b_strict_final_128.yaml`, 128 GSM8K test exa
 | Run | Config | Starting Point | Purpose | Run Status |
 | --- | --- | --- | --- | --- |
 | Base 3B final-line exact GRPO pilot | `configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Test whether direct GRPO can preserve base reasoning while learning the final-line contract without recreating the SFT length collapse. | Early-stopped at step 50 |
-| Base 3B contract-curriculum GRPO | tbd | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Add a denser contract reward before strict final-line exactness, so the model can get signal for answer-marker placement and stopping without compressing reasoning. | Proposed |
+| Base 3B contract-curriculum GRPO | `configs/cloud_3b_contract_curriculum_grpo.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Add a denser contract reward before strict final-line exactness, so the model can get signal for answer-marker placement and stopping without compressing reasoning. | Ready |
 
 ## Current Read
 
@@ -45,6 +45,13 @@ Primary checks for the next base-policy run:
 - strict final-line format should improve substantially over the base model's 1/128
 - average completion length should not collapse toward the 266-281 character adapter range unless exact accuracy is preserved
 - compare against the base eval and manually inspect base-correct examples that the new run loses
+
+Next run command:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.train_grpo \
+  --config configs/cloud_3b_contract_curriculum_grpo.yaml
+```
 
 Required comparisons:
 

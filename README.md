@@ -57,7 +57,12 @@ This run asked whether direct GRPO from the base 3B model can preserve the base 
 
 ## Next Experiment
 
-The next useful run should still start from the base 3B policy with fresh LoRA, but it should add intermediate contract rewards before strict final-line exactness. The target is to reward answer-marker placement and stopping behavior without rewarding short reasoning for its own sake. Success means staying near the base model's 91/128 exact score while moving strict final-line format far above 1/128.
+The next useful run still starts from the base 3B policy with fresh LoRA, but it adds intermediate contract rewards before strict final-line exactness. The target is to reward answer-marker placement and stopping behavior without rewarding short reasoning for its own sake. Success means staying near the base model's 91/128 exact score while moving strict final-line format far above 1/128.
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.train_grpo \
+  --config configs/cloud_3b_contract_curriculum_grpo.yaml
+```
 
 ## Hardware Plan
 

@@ -1,0 +1,51 @@
+seed: 45
+model_name_or_path: Qwen/Qwen2.5-3B-Instruct
+model:
+  torch_dtype: bfloat16
+dataset:
+  name: openai/gsm8k
+  config: main
+  split: train
+  limit: 512
+  prompt_style: strict_final_line
+output_dir: outputs/cloud_3b_contract_curriculum_grpo
+training:
+  max_steps: 150
+  learning_rate: 0.000005
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  num_generations: 4
+  max_prompt_length: 512
+  max_completion_length: 384
+  temperature: 0.8
+  top_p: 0.95
+  logging_steps: 5
+  save_steps: 50
+  bf16: true
+  fp16: false
+  gradient_checkpointing: true
+  use_vllm: false
+  beta: 0.0
+  loss_type: dr_grpo
+lora:
+  enabled: true
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+rewards:
+  correctness_weight: 2.0
+  marker_correctness_weight: 1.5
+  contract_progress_weight: 2.0
+  final_line_correctness_weight: 0.5
+  format_weight: 0.0
+  final_line_weight: 0.0
+  trailing_penalty_weight: 0.3
+  conversation_leak_penalty_weight: 0.7
