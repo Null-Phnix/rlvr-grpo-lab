@@ -80,9 +80,15 @@ The 500-step GRPO resume preserved the output contract and improved strict final
 
 The result does not beat the base model on loose exact accuracy yet, but it creates a much better RLVR starting point: clean answer extraction, no trailing text, no missing answers, and dense enough reward signal. Longer GRPO alone appears to plateau under the current reward weights, so the next run should tune the reward/objective before scaling to 7B.
 
+## Error Analysis
+
+A checkpoint-100 vs checkpoint-500 comparison report was generated at `outputs/evals/cloud_3b_post_strict_grpo_resume_pilot_500_128/comparison_vs_checkpoint100.md`.
+
+The 500-step checkpoint had 3 wins and 3 losses against checkpoint 100. The losses were not format failures; they were cleanly formatted wrong answers. One win reached the correct final answer through brittle intermediate reasoning, so this setup should not be treated as a reasoning-quality win just because the final-answer metric is flat.
+
 ## Next Steps
 
-- inspect the checkpoint-100 vs checkpoint-500 win/loss examples before changing model size
+- use the win/loss report to tune the next objective before changing model size
 - tune reward weights or sampling so exact-answer reward has more room to move after the output contract is learned
 - keep strict final-line reward and trailing penalty, but avoid letting format dominate the objective
 - run a larger held-out eval only after a reward change produces a clear 128-example improvement
