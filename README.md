@@ -26,17 +26,18 @@ The first serious cloud run used `Qwen/Qwen2.5-3B-Instruct` on a RunPod A100-SXM
 | SFT -> GRPO pilot | 87/128 | 122/128 | 0/128 | 278.55 | Recovered some exact accuracy. |
 | SFT -> GRPO resume 500 | 87/128 | 123/128 | 0/128 | 281.06 | Exact plateaued. |
 | Checkpoint 500 -> final-line exact reward | 87/128 | 124/128 | 0/128 | 266.80 | Cleaner and shorter, exact still plateaued. |
+| Base 3B -> final-line exact GRPO step 50 | 84/128 | 2/128 | 69/128 | 838.60 | No length collapse, but contract did not learn. |
 
-The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. The next experiment should start from the base 3B policy with fresh LoRA and final-line exact reward from the beginning.
+The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. Starting fresh from the base 3B policy avoided the SFT length collapse, but strict final-line exactness was too sparse to learn directly: the step-50 run lost 7 exact answers versus the base model and improved strict final-line format by only one example.
 
 Detailed records:
 
 - [Experiment ledger](docs/runs/experiment_ledger.md)
 - [RunPod A100 3B pilot notes](docs/runs/runpod_a100_3b_pilot.md)
 
-## Next Experiment
+## Latest Base-Policy Experiment
 
-Ready-to-run config:
+Run config:
 
 ```bash
 ~/.local/bin/uv run python -m rlvr_lab.train_grpo \
@@ -48,11 +49,15 @@ Eval it with:
 ```bash
 ~/.local/bin/uv run python -m rlvr_lab.eval_model \
   --config configs/eval_cloud_3b_strict_final_128.yaml \
-  --adapter-path outputs/cloud_3b_base_final_line_exact_grpo_pilot/checkpoint-100 \
-  --output-dir outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_128
+  --adapter-path outputs/cloud_3b_base_final_line_exact_grpo_pilot/checkpoint-50 \
+  --output-dir outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_step50_128
 ```
 
-This test asks whether direct GRPO from the base 3B model can preserve the base model's reasoning quality while learning the strict final-line answer contract. The reward weights intentionally make correctness dominate pure formatting so the run does not simply recreate the SFT branch's length collapse.
+This run asked whether direct GRPO from the base 3B model can preserve the base model's reasoning quality while learning the strict final-line answer contract. It was early-stopped at checkpoint 50 because training metrics stayed at `final_line_exact_accuracy=0` and completions were usually clipped at the 384-token cap. The held-out eval was worse than base exact accuracy, so the next branch should use a denser contract curriculum rather than more steps of the same sparse final-line reward.
+
+## Next Experiment
+
+The next useful run should still start from the base 3B policy with fresh LoRA, but it should add intermediate contract rewards before strict final-line exactness. The target is to reward answer-marker placement and stopping behavior without rewarding short reasoning for its own sake. Success means staying near the base model's 91/128 exact score while moving strict final-line format far above 1/128.
 
 ## Hardware Plan
 
