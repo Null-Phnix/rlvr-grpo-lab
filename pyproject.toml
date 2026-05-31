@@ -20,7 +20,7 @@ train = [
     "datasets>=4.4.0",
     "peft>=0.18.0",
     "sentencepiece>=0.2.0",
-    "torch>=2.8.0",
+    "torch>=2.8.0,<2.9",
     "transformers>=4.57.0",
     "trl>=1.5.1",
 ]
