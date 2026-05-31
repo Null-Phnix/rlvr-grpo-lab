@@ -100,6 +100,30 @@ def math_correctness_reward(
     return rewards
 
 
+def final_line_correctness_reward(
+    completions: list[Any],
+    ground_truth: list[str],
+    **kwargs: Any,
+) -> list[float]:
+    rewards = []
+    extracted = []
+    for completion, gold in zip(completions, ground_truth, strict=False):
+        predicted = normalize_answer(extract_final_line_answer(completion_text(completion)))
+        expected = normalize_answer(gold)
+        extracted.append(predicted or "[none]")
+        rewards.append(1.0 if predicted is not None and predicted == expected else 0.0)
+
+    log_extra = kwargs.get("log_extra")
+    if log_extra:
+        log_extra("final_line_extracted_answer", extracted)
+
+    log_metric = kwargs.get("log_metric")
+    if log_metric and rewards:
+        log_metric("final_line_exact_accuracy", sum(rewards) / len(rewards))
+
+    return rewards
+
+
 def final_format_reward(completions: list[Any], **kwargs: Any) -> list[float]:
     return [
         1.0 if FINAL_RE.search(completion_text(completion)) else 0.0

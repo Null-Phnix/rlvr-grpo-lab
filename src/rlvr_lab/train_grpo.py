@@ -10,6 +10,7 @@ import yaml
 from rlvr_lab.datasets import load_math_dataset
 from rlvr_lab.rewards import (
     final_format_reward,
+    final_line_correctness_reward,
     final_line_format_reward,
     math_correctness_reward,
     trailing_text_penalty,
@@ -73,6 +74,7 @@ def build_training_args(config: dict[str, Any]):
         "loss_type": str(training.get("loss_type", "dr_grpo")),
         "reward_weights": [
             float(reward_weights.get("correctness_weight", 1.0)),
+            float(reward_weights.get("final_line_correctness_weight", 0.0)),
             float(reward_weights.get("format_weight", 0.2)),
             float(reward_weights.get("final_line_weight", 0.0)),
             float(reward_weights.get("trailing_penalty_weight", 0.0)),
@@ -161,6 +163,7 @@ def main() -> None:
         train_dataset=dataset,
         reward_funcs=[
             math_correctness_reward,
+            final_line_correctness_reward,
             final_format_reward,
             final_line_format_reward,
             trailing_text_penalty,

@@ -2,6 +2,7 @@ from rlvr_lab.rewards import (
     extract_answer,
     extract_final_line_answer,
     final_format_reward,
+    final_line_correctness_reward,
     final_line_format_reward,
     has_text_after_final_marker,
     math_correctness_reward,
@@ -28,6 +29,18 @@ def test_math_correctness_reward() -> None:
         ground_truth=["42", "42"],
     )
     assert rewards == [1.0, 0.0]
+
+
+def test_final_line_correctness_reward_requires_correct_final_line() -> None:
+    rewards = final_line_correctness_reward(
+        completions=[
+            "reasoning\n#### 42",
+            "early #### 42\nthen extra",
+            "reasoning\n#### 41",
+        ],
+        ground_truth=["42", "42", "42"],
+    )
+    assert rewards == [1.0, 0.0, 0.0]
 
 
 def test_final_format_reward() -> None:
