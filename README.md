@@ -86,6 +86,17 @@ Compare two eval summaries:
   outputs/evals/local_4060_post_smoke/summary.json
 ```
 
+Compare sample-level wins/losses and write a Markdown report:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.compare_samples \
+  outputs/evals/cloud_3b_post_strict_grpo_resume_pilot_500_128 \
+  outputs/evals/cloud_3b_final_line_exact_grpo_after_500_128 \
+  --baseline-label checkpoint-500 \
+  --candidate-label final-line-exact \
+  --output outputs/evals/cloud_3b_final_line_exact_grpo_after_500_128/comparison_vs_checkpoint500.md
+```
+
 Prompt sweep configs:
 
 ```bash
