@@ -8,7 +8,10 @@ Every result promoted in the README should have a config path, output path, summ
 
 | Run | Source Output | Exact | Strict Final Line | Trailing Text | Why It Matters |
 | --- | --- | ---: | ---: | ---: | --- |
-| Boundary SFT 384 stop-aware | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_128` | 107/128 | 62/128 | 0/128 | Current promoted baseline. |
+| Boundary SFT v4 source-final-line 384 stop-aware | `outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512` | 429/512 | 361/512 | 0/512 | Current promoted 3B branch; no observed exact loss and much cleaner final-line format. |
+| Boundary SFT v4 source-final-line 128 gate | `outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_128` | 107/128 | 86/128 | 0/128 | Matches the previous 128-example exact score with better answer-contract format. |
+| Previous boundary SFT 384 stop-aware | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_128` | 107/128 | 62/128 | 0/128 | Previous promoted baseline. |
+| Previous boundary SFT 384 stop-aware 512 check | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_512` | 427/512 | 257/512 | 0/512 | Larger held-out comparison baseline for v4. |
 | Boundary SFT 384 raw | `outputs/evals/cloud_3b_boundary_sft_strict_384_128` | 107/128 | 59/128 | 6/128 | Shows the 384-token budget recovers exact answers, but raw generation still trails. |
 | Cleanup GRPO 384 stop-aware | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_384_128` | 103/128 | 65/128 | 0/128 | Cleaner format, but loses 4 exact answers vs the baseline. |
 | Cleanup GRPO 384 raw | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_384_128` | 103/128 | 64/128 | 4/128 | Confirms cleanup mostly trades exactness for answer-contract cleanliness. |
@@ -17,7 +20,9 @@ Every result promoted in the README should have a config path, output path, summ
 
 ## Files
 
-- `current_promoted_baseline/`: summary and failure analysis for boundary SFT 384 stop-aware.
+- `boundary_sft_v4_source_finalline_384_stopaware/`: current promoted v4 summaries, failure analyses, and comparisons for the 128 gate and 512 check.
+- `boundary_sft_v2_scaleup_diagnostics/`: decision-critical evidence for rejected v2/v3 scale-up branches and the stricter v4 dataset filter.
+- `current_promoted_baseline/`: previous summary and failure analysis for boundary SFT 384 stop-aware.
 - `boundary_sft_384_raw/`: raw-generation control for the same adapter and token budget.
 - `cleanup_grpo_384_stopaware/`: cleanup-GRPO 384 stop-aware summary plus comparison against the current baseline.
 - `cleanup_grpo_384_raw/`: raw cleanup-GRPO 384 summary plus comparison against boundary SFT raw 384.

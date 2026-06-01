@@ -6,14 +6,15 @@ This is not presented as a DeepSeek-R1 reproduction. The goal is narrower and mo
 
 ## Current Promoted Baseline
 
-**Boundary SFT + strict stop-aware 384-token eval** is the current promoted baseline.
+**Boundary SFT v4 source-final-line + strict stop-aware 384-token eval** is the current promoted baseline.
 
-- Result: `107/128` exact, `62/128` strict final line, `0/128` trailing text.
-- Artifact: `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_128/summary.json`
-- Public evidence: [`docs/results/current_promoted_baseline/summary.json`](docs/results/current_promoted_baseline/summary.json)
-- Reason: it beats cleanup GRPO by 4 exact answers at the same 384-token budget while preserving clean post-answer termination.
+- 128-example gate: `107/128` exact, `86/128` strict final line, `0/128` trailing text.
+- 512-example check: `429/512` exact, `361/512` strict final line, `0/512` trailing text.
+- Artifact: `outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512/summary.json`
+- Public evidence: [`docs/results/boundary_sft_v4_source_finalline_384_stopaware/summary_512.json`](docs/results/boundary_sft_v4_source_finalline_384_stopaware/summary_512.json)
+- Reason: it matches the previous 128-example exact score, improves the 512-example exact score by 2 answers, and substantially improves strict final-line format without reintroducing trailing text.
 
-Do not scale `configs/cloud_7b_grpo.yaml` as the next 7B experiment. It is a legacy GRPO config that does not reflect the current boundary-SFT lesson. The next rented-GPU work should first validate the promoted 3B baseline on a larger held-out set, then run boundary-SFT v2 before any 7B port.
+Do not scale `configs/cloud_7b_grpo.yaml` as the next 7B experiment. It is a legacy GRPO config that does not reflect the current boundary-SFT lesson. The next rented-GPU work should port the source-final-line boundary-SFT recipe to 7B, not the older unfiltered v2 scale-up.
 
 ## What This Repo Contains
 
@@ -47,8 +48,14 @@ The first serious cloud run used `Qwen/Qwen2.5-3B-Instruct` on a RunPod A100-SXM
 | Boundary SFT -> cleanup GRPO step 40 stop-aware eval | 100/128 | 57/128 | 0/128 | 477.29 | Same exact score with clean post-answer termination. |
 | Boundary SFT 384-token stop-aware eval | 107/128 | 62/128 | 0/128 | 494.98 | Larger eval budget recovers clipped correct answers; best current exact score. |
 | Boundary cleanup GRPO 384-token stop-aware eval | 103/128 | 65/128 | 0/128 | 494.20 | Cleaner final-line format, but loses 4 exact answers vs boundary SFT at the same token budget. |
+| Boundary SFT v2 2048-data step 200 | 101/128 | 65/128 | 0/128 | 493.95 | Larger unfiltered self-distill data overfit/drifted; rejected. |
+| Boundary SFT v2 2048-data step 100 | 105/128 | 59/128 | 0/128 | 539.91 | Better than step 200 but still below the baseline. |
+| Boundary SFT v3 marker-line rewrite | 104/128 | 100/128 | 0/128 | 493.88 | Big final-line gain, but exact accuracy regressed. |
+| Boundary SFT v4 source-final-line | 107/128 | 86/128 | 0/128 | 541.79 | Matches baseline exact and improves final-line format; promoted after 512-example check. |
 
 The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. Starting fresh from the base 3B policy avoided the SFT length collapse, but strict final-line exactness was too sparse to learn directly. Adding dense marker/curriculum rewards kept marker correctness learnable during training, but did not teach clean stopping and worsened held-out exact accuracy.
+
+On the 512-example held-out check, the previous boundary-SFT baseline scored `427/512` exact and `257/512` strict final line. The v4 source-final-line adapter scored `429/512` exact and `361/512` strict final line. The exact delta is small, so the conservative claim is no observed exact-accuracy loss with a much cleaner answer contract.
 
 Detailed records:
 
@@ -156,6 +163,41 @@ uv run python -m rlvr_lab.eval_model \
 ```
 
 This adapter became the starting point for a light cleanup-GRPO branch.
+
+## Boundary SFT v4 Result
+
+The 2048-example scale-up showed that more pseudo-labels are not automatically better. The initial v2 dataset kept every exact, marked-correct pseudo-label, including many completions where the `####` marker appeared inline inside the last reasoning sentence. That step-200 adapter fell to `101/128` exact. The step-100 checkpoint recovered to `105/128`, still below the previous `107/128` baseline.
+
+Two stricter variants tested the data-shape hypothesis:
+
+- v3 rewrote every correct marker onto its own final line. It reached `100/128` strict final line, but exact fell to `104/128`.
+- v4 kept only pseudo-labels that already had a natural final answer line. It selected `932/2048` examples, matched the previous `107/128` exact gate, and improved strict final-line format from `62/128` to `86/128`.
+
+The 512-example check promoted v4:
+
+- previous boundary SFT: `427/512` exact, `257/512` strict final line, `0/512` trailing
+- v4 source-final-line: `429/512` exact, `361/512` strict final line, `0/512` trailing
+
+Build the v4 dataset:
+
+```bash
+uv run python -m rlvr_lab.build_boundary_sft_data \
+  outputs/evals/cloud_3b_train2048_strict_final_stopaware_pseudo \
+  --output outputs/datasets/cloud_3b_boundary_sft_train2048_source_finalline.jsonl \
+  --require-source-final-line
+```
+
+Train and evaluate:
+
+```bash
+uv run python -m rlvr_lab.train_format_sft \
+  --config configs/cloud_3b_boundary_sft_v4_source_finalline.yaml
+```
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512.yaml
+```
 
 ## Boundary Cleanup GRPO Result
 

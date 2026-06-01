@@ -1,6 +1,6 @@
 # Boundary SFT Technical Note
 
-Boundary SFT is the current best training direction in this repo.
+Boundary SFT is the current best training direction in this repo. The current promoted variant is source-final-line boundary SFT: train only on exact pseudo-labels whose answer marker already appears as the final line.
 
 ## Problem
 
@@ -28,7 +28,7 @@ The first boundary-SFT run used:
 - SFT config: `configs/cloud_3b_boundary_sft_warmup.yaml`
 - promoted eval: `configs/eval_cloud_3b_boundary_sft_strict_stopaware_384_128.yaml`
 
-Promoted result:
+Previous promoted result:
 
 - exact: `107/128`
 - strict final line: `62/128`
@@ -37,14 +37,48 @@ Promoted result:
 
 Cleanup GRPO at the same 384-token budget scored `103/128` exact and `65/128` strict final line. That is a format tradeoff, not the current accuracy baseline.
 
+## 2048-Example Scale-Up
+
+The 2048-example pseudo-label pass used:
+
+- pseudo-label config: `configs/eval_cloud_3b_train2048_strict_final_stopaware_pseudo.yaml`
+- pseudo-label output: `outputs/evals/cloud_3b_train2048_strict_final_stopaware_pseudo`
+- result: `1770/2048` exact, `1051/2048` strict final line, `0/2048` trailing
+
+The first v2 scale-up kept all exact, marked-correct pseudo-labels:
+
+- dataset: `outputs/datasets/cloud_3b_boundary_sft_train2048.jsonl`
+- selected: `1657/2048`
+- step 100 eval: `105/128` exact, `59/128` strict final line
+- step 200 eval: `101/128` exact, `65/128` strict final line
+
+This showed that larger unfiltered self-distillation was not enough. Many selected targets had a correct `####` marker inline in the final reasoning sentence, so they were exact but did not teach the strict final-line contract cleanly.
+
+The v3 marker-line rewrite branch forced every selected marker onto its own final line:
+
+- dataset: `outputs/datasets/cloud_3b_boundary_sft_train2048_markerline.jsonl`
+- selected: `1657/2048`
+- eval: `104/128` exact, `100/128` strict final line
+
+That confirmed the target-shape hypothesis but showed a clear exactness tradeoff.
+
+The v4 source-final-line branch kept only pseudo-labels that naturally satisfied the final-line contract:
+
+- dataset: `outputs/datasets/cloud_3b_boundary_sft_train2048_source_finalline.jsonl`
+- selected: `932/2048`
+- 128 gate: `107/128` exact, `86/128` strict final line, `0/128` trailing
+- 512 check: `429/512` exact, `361/512` strict final line, `0/512` trailing
+
+Compared with the previous boundary-SFT 512 check, v4 is `+2` exact and `+104` strict final-line cases. The exact delta is small, so treat v4 as a contract-cleanliness improvement with no observed exact regression, not as a large accuracy gain.
+
 ## Next Experiment
 
-Boundary SFT v2 should scale the same idea before any 7B work:
+Port the v4 source-final-line recipe to 7B before revisiting GRPO:
 
-1. Generate 2048 train-split pseudo-labels with `configs/eval_cloud_3b_train2048_strict_final_stopaware_pseudo.yaml`.
-2. Build `outputs/datasets/cloud_3b_boundary_sft_train2048.jsonl`.
-3. Train with `configs/cloud_3b_boundary_sft_v2.yaml`.
-4. Eval first on `configs/eval_cloud_3b_boundary_sft_v2_strict_stopaware_384_128.yaml`.
-5. Promote only if it beats or matches the current baseline on exact accuracy, then run the 512-example eval.
+1. Generate 2048 7B train-split pseudo-labels with strict prompt and stop-aware postprocessing.
+2. Build the dataset with `rlvr_lab.build_boundary_sft_data --require-source-final-line`.
+3. Train a 7B boundary-SFT adapter.
+4. Gate it on a 128-example strict stop-aware 384-token eval.
+5. Run the 512-example check only if the 128 gate matches or beats the current 3B v4 read.
 
 Do not continue cleanup-GRPO reward pressure unless the explicit goal is to trade exact accuracy for slightly cleaner final-line formatting.

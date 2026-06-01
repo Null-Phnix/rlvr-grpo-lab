@@ -22,71 +22,60 @@ Use this as the 3B model-selection baseline:
 
 ```bash
 uv run python -m rlvr_lab.eval_model \
-  --config configs/eval_cloud_3b_boundary_sft_strict_stopaware_384_128.yaml
+  --config configs/eval_cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_128.yaml
 ```
 
 Expected snapshot from the promoted run:
 
-- output: `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_128`
+- output: `outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_128`
 - exact: `107/128`
-- strict final line: `62/128`
+- strict final line: `86/128`
 - trailing text: `0/128`
 
-## Phase 1: Larger 3B Baseline Eval
-
-Run the current boundary-SFT adapter on a larger held-out set before new training:
-
-```bash
-bash scripts/run_gpu_3b_baseline_eval.sh
-```
-
-Optional full test-set sweep:
-
-```bash
-bash scripts/run_gpu_3b_baseline_eval.sh --full
-```
-
-Promote the 512/full result only after adding `summary.json`, `failure_analysis.json`, and a comparison report to `docs/results/`.
-
-## Phase 2: Boundary SFT v2
-
-Generate a larger pseudo-label set:
+Larger held-out check:
 
 ```bash
 uv run python -m rlvr_lab.eval_model \
-  --config configs/eval_cloud_3b_train2048_strict_final_stopaware_pseudo.yaml
+  --config configs/eval_cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512.yaml
 ```
 
-Build the v2 SFT dataset:
+Expected snapshot:
+
+- output: `outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512`
+- exact: `429/512`
+- strict final line: `361/512`
+- trailing text: `0/512`
+
+The previous boundary-SFT baseline was `427/512` exact and `257/512` strict final line. Treat v4 as a contract-cleanliness promotion with no observed exact regression, not as a large exact-accuracy gain.
+
+## Completed 3B Scale-Up
+
+The unfiltered v2 2048-example scale-up is rejected:
+
+- step 100: `105/128` exact, `59/128` strict final line
+- step 200: `101/128` exact, `65/128` strict final line
+
+The v3 marker-line rewrite branch is also rejected as a tradeoff:
+
+- `104/128` exact, `100/128` strict final line
+
+The promoted v4 branch uses:
 
 ```bash
 uv run python -m rlvr_lab.build_boundary_sft_data \
   outputs/evals/cloud_3b_train2048_strict_final_stopaware_pseudo \
-  --output outputs/datasets/cloud_3b_boundary_sft_train2048.jsonl
+  --output outputs/datasets/cloud_3b_boundary_sft_train2048_source_finalline.jsonl \
+  --require-source-final-line
 ```
-
-Train the v2 adapter:
 
 ```bash
 uv run python -m rlvr_lab.train_format_sft \
-  --config configs/cloud_3b_boundary_sft_v2.yaml
+  --config configs/cloud_3b_boundary_sft_v4_source_finalline.yaml
 ```
 
-Eval v2 on the 128-example gate:
+## Next Phase: 7B Source-Final-Line Boundary SFT
 
-```bash
-bash scripts/run_gpu_3b_boundary_sft_v2.sh
-```
-
-If v2 matches or beats the current `107/128` exact baseline, run the 512-example eval:
-
-```bash
-bash scripts/run_gpu_3b_boundary_sft_v2.sh --eval-512
-```
-
-## Phase 3: 7B Boundary SFT
-
-Start 7B only after the 3B v2 result is understood. Do not use `configs/cloud_7b_grpo.yaml` as the next 7B experiment.
+Do not use `configs/cloud_7b_grpo.yaml` as the next 7B experiment. Do not port the rejected unfiltered 3B v2 recipe directly.
 
 Generate 7B pseudo-labels:
 
@@ -100,23 +89,37 @@ Build the 7B SFT dataset:
 ```bash
 uv run python -m rlvr_lab.build_boundary_sft_data \
   outputs/evals/cloud_7b_train2048_strict_final_stopaware_pseudo \
-  --output outputs/datasets/cloud_7b_boundary_sft_train2048.jsonl
+  --output outputs/datasets/cloud_7b_boundary_sft_train2048_source_finalline.jsonl \
+  --require-source-final-line
 ```
 
 Train the 7B adapter:
 
 ```bash
 uv run python -m rlvr_lab.train_format_sft \
-  --config configs/cloud_7b_boundary_sft_v1.yaml
+  --config configs/cloud_7b_boundary_sft_v2_source_finalline.yaml
 ```
 
-Evaluate the 7B adapter:
+Evaluate the 128-example gate:
 
 ```bash
-bash scripts/run_gpu_7b_boundary_sft_v1.sh --approved-after-3b
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128.yaml
 ```
 
-The 7B script refuses to run without `--approved-after-3b` so it is not launched by accident.
+Or run the guarded end-to-end script:
+
+```bash
+bash scripts/run_gpu_7b_boundary_sft_v2_source_finalline.sh --approved-after-3b-v4
+```
+
+Only add `--eval-512` after the 128-example gate is worth promoting:
+
+```bash
+bash scripts/run_gpu_7b_boundary_sft_v2_source_finalline.sh --approved-after-3b-v4 --eval-512
+```
+
+The 7B source-final-line script refuses to run without `--approved-after-3b-v4` so it is not launched by accident.
 
 ## Promotion Rules
 

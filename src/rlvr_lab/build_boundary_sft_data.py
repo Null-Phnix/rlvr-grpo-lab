@@ -11,6 +11,7 @@ from rich.table import Table
 
 from rlvr_lab.postprocess import postprocess_completion
 from rlvr_lab.rewards import (
+    FINAL_RE,
     extract_marked_answer,
     normalize_answer,
 )
@@ -45,12 +46,27 @@ def marked_answer_is_correct(record: Mapping[str, Any]) -> bool:
     return predicted is not None and expected is not None and predicted == expected
 
 
+def force_final_marker_line(text: str) -> str:
+    match = FINAL_RE.search(text)
+    if match is None:
+        return text.strip()
+
+    prefix = text[: match.start()].rstrip()
+    marker = match.group(0).strip()
+    if not prefix:
+        return marker
+    return f"{prefix}\n{marker}"
+
+
 def make_boundary_record(
     record: Mapping[str, Any],
     *,
     postprocess_config: Mapping[str, Any],
+    force_marker_line: bool = False,
 ) -> dict[str, Any]:
     completion = postprocess_completion(str(record.get("completion", "")), postprocess_config)
+    if force_marker_line:
+        completion = force_final_marker_line(completion)
     return {
         "prompt": str(record.get("prompt", "")),
         "completion": completion,
@@ -67,12 +83,15 @@ def build_boundary_records(
     *,
     require_exact: bool = True,
     require_marked_correct: bool = True,
+    require_source_final_line: bool = False,
+    force_marker_line: bool = False,
     postprocess_config: Mapping[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     selected: list[dict[str, Any]] = []
     total = 0
     skipped_not_exact = 0
     skipped_marker_wrong = 0
+    skipped_not_final_line = 0
     skipped_empty = 0
     config = postprocess_config or DEFAULT_BOUNDARY_CONFIG
 
@@ -84,8 +103,15 @@ def build_boundary_records(
         if require_marked_correct and not marked_answer_is_correct(record):
             skipped_marker_wrong += 1
             continue
+        if require_source_final_line and not bool(record.get("final_line_is_answer", False)):
+            skipped_not_final_line += 1
+            continue
 
-        boundary_record = make_boundary_record(record, postprocess_config=config)
+        boundary_record = make_boundary_record(
+            record,
+            postprocess_config=config,
+            force_marker_line=force_marker_line,
+        )
         if not boundary_record["prompt"].strip() or not boundary_record["completion"].strip():
             skipped_empty += 1
             continue
@@ -97,10 +123,13 @@ def build_boundary_records(
         "selected_count": len(selected),
         "skipped_not_exact": skipped_not_exact,
         "skipped_marker_wrong": skipped_marker_wrong,
+        "skipped_not_final_line": skipped_not_final_line,
         "skipped_empty": skipped_empty,
         "avg_completion_chars": completion_chars / len(selected) if selected else 0.0,
         "require_exact": require_exact,
         "require_marked_correct": require_marked_correct,
+        "require_source_final_line": require_source_final_line,
+        "force_marker_line": force_marker_line,
     }
     return selected, summary
 
@@ -126,6 +155,7 @@ def render_summary(summary: Mapping[str, Any]) -> None:
         "selected_count",
         "skipped_not_exact",
         "skipped_marker_wrong",
+        "skipped_not_final_line",
         "skipped_empty",
         "avg_completion_chars",
     ]:
@@ -140,12 +170,16 @@ def main() -> None:
     parser.add_argument("--summary-output", type=Path)
     parser.add_argument("--allow-inexact", action="store_true")
     parser.add_argument("--allow-unmarked-exact", action="store_true")
+    parser.add_argument("--require-source-final-line", action="store_true")
+    parser.add_argument("--force-marker-line", action="store_true")
     args = parser.parse_args()
 
     records, summary = build_boundary_records(
         load_samples(args.samples),
         require_exact=not args.allow_inexact,
         require_marked_correct=not args.allow_unmarked_exact,
+        require_source_final_line=args.require_source_final_line,
+        force_marker_line=args.force_marker_line,
     )
     write_jsonl(args.output, records)
     write_summary(args.summary_output or args.output.with_suffix(".summary.json"), summary)
