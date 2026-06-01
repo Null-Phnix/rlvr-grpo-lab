@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 
+from rlvr_lab.compat import filter_supported_kwargs
 from rlvr_lab.datasets import load_math_dataset
 from rlvr_lab.rewards import (
     answer_contract_progress_reward,
@@ -90,9 +91,11 @@ def build_training_args(config: dict[str, Any]):
     }
 
     supported_args = set(inspect.signature(GRPOConfig.__init__).parameters)
-    filtered_args = {
-        name: value for name, value in requested_args.items() if name in supported_args
-    }
+    filtered_args = filter_supported_kwargs(
+        requested_args,
+        supported_args,
+        owner="trl.GRPOConfig",
+    )
     return GRPOConfig(**filtered_args)
 
 

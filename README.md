@@ -4,6 +4,17 @@ Config-driven RLVR/GRPO post-training experiments for reasoning models, with ver
 
 This is not presented as a DeepSeek-R1 reproduction. The goal is narrower and more useful: build an inspectable training/eval harness, run cheap local smoke tests, then scale the same workflow to rented GPUs for 3B/7B experiments.
 
+## Current Promoted Baseline
+
+**Boundary SFT + strict stop-aware 384-token eval** is the current promoted baseline.
+
+- Result: `107/128` exact, `62/128` strict final line, `0/128` trailing text.
+- Artifact: `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_128/summary.json`
+- Public evidence: [`docs/results/current_promoted_baseline/summary.json`](docs/results/current_promoted_baseline/summary.json)
+- Reason: it beats cleanup GRPO by 4 exact answers at the same 384-token budget while preserving clean post-answer termination.
+
+Do not scale `configs/cloud_7b_grpo.yaml` as the next 7B experiment. It is a legacy GRPO config that does not reflect the current boundary-SFT lesson. The next rented-GPU work should first validate the promoted 3B baseline on a larger held-out set, then run boundary-SFT v2 before any 7B port.
+
 ## What This Repo Contains
 
 - GRPO training entrypoint with LoRA adapter support
@@ -42,6 +53,9 @@ The current conclusion is that this rationale-SFT adapter chain learned the outp
 Detailed records:
 
 - [Experiment ledger](docs/runs/experiment_ledger.md)
+- [Promoted result evidence](docs/results/README.md)
+- [Boundary SFT technical note](docs/technical_notes/boundary_sft.md)
+- [Next GPU runbook](docs/runbooks/next_gpu_runs.md)
 - [RunPod A100 3B pilot notes](docs/runs/runpod_a100_3b_pilot.md)
 
 ## Latest Base-Policy Experiment
@@ -198,10 +212,10 @@ bash scripts/bootstrap_remote.sh
 
 That installs `uv` into `~/.local/bin` if needed, installs Python through `uv`, and syncs the dev dependencies.
 
-For the full training stack:
+For the full training stack on a rented GPU:
 
 ```bash
-~/.local/bin/uv sync --extra train --extra dev
+bash scripts/bootstrap_remote.sh --train
 ```
 
 ## Sanity Checks

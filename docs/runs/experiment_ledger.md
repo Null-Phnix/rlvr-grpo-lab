@@ -49,6 +49,9 @@ These runs test whether the 256-token eval budget clipped correct completions.
 | Stop-aware base-policy branch | `configs/eval_cloud_3b_strict_final_stopaware_128.yaml`, `configs/eval_cloud_3b_minimal_final_stopaware_128.yaml` | `Qwen/Qwen2.5-3B-Instruct` | Change generation or prompt boundaries so the model can terminate after the answer line before spending more GRPO on stopping rewards. | Strict stop-aware complete; minimal rejected |
 | Boundary SFT self-distillation | `configs/cloud_3b_boundary_sft_warmup.yaml` | `Qwen/Qwen2.5-3B-Instruct` + strict stop-aware pseudo-labels | Train EOS after the correct `####` boundary using base-model exact-correct completions instead of short gold rationales or sparse reward-only GRPO. | Complete; best adapter so far |
 | Boundary SFT -> cleanup GRPO | `configs/cloud_3b_boundary_sft_cleanup_grpo.yaml` | `outputs/cloud_3b_boundary_sft_warmup` | Preserve the 100/128 exact score while removing the remaining 5 raw trailing cases and recovering final-line format. | Complete; checkpoint 40 accepted, checkpoint 20 rejected |
+| Boundary SFT larger held-out eval | `configs/eval_cloud_3b_boundary_sft_strict_stopaware_384_512.yaml` | `outputs/cloud_3b_boundary_sft_warmup` | Check whether the promoted 107/128 baseline holds on a 512-example held-out set before more training. | Ready for next pod |
+| Boundary SFT v2 | `configs/cloud_3b_boundary_sft_v2.yaml` | `Qwen/Qwen2.5-3B-Instruct` + 2048 strict stop-aware pseudo-labels | Scale the successful boundary-SFT recipe before any 7B work. | Ready after larger 3B eval |
+| 7B boundary SFT v1 | `configs/cloud_7b_boundary_sft_v1.yaml` | `Qwen/Qwen2.5-7B-Instruct` + 2048 strict stop-aware pseudo-labels | Port boundary SFT to 7B only after the 3B v2 branch is understood. | Prepared, not approved to run yet |
 
 ## Current Read
 
@@ -71,6 +74,8 @@ Boundary SFT succeeded. The pseudo-label pass scored 382/512 exact and the filte
 The boundary cleanup GRPO branch partially succeeded. Checkpoint 20 was rejected because it fell to 98/128 exact and did not reduce raw trailing text. Checkpoint 40 preserved 100/128 exact, improved raw strict final-line format from 51/128 to 57/128, and reduced raw trailing text from 5/128 to 3/128. Stop-aware eval of checkpoint 40 kept 100/128 exact, 57/128 strict final-line format, and 0/128 trailing text. Sample comparison vs boundary SFT shows 5 exact wins and 5 exact losses, so this is a contract-cleanup result rather than an accuracy gain. Before spending more GPU, inspect the 3 remaining raw trailing cases and the 5 boundary-SFT-correct examples lost by cleanup GRPO.
 
 The 384-token sensitivity eval changes the model-selection conclusion. The 256-token eval was clipping some correct completions. With `max_new_tokens=384`, boundary SFT rises to 107/128 exact and cleanup GRPO rises to 103/128 exact. At this fair larger budget, cleanup GRPO has 0 exact wins and 4 losses vs boundary SFT, while improving strict final-line format from 62/128 to 65/128 under stop-aware eval. The next promoted baseline should be boundary SFT with strict stop-aware 384-token eval. Do not continue this cleanup-GRPO reward mix unless the goal is explicitly to trade exact accuracy for final-line cleanliness.
+
+The next pod sequence is documented in `docs/runbooks/next_gpu_runs.md`. First run the current boundary-SFT adapter on 512 held-out examples. If that holds, generate 2048 pseudo-labels and train boundary SFT v2. The 7B configs are prepared for the same boundary-SFT path, but they are intentionally gated behind the 3B v2 result.
 
 ## Base-Policy GRPO Success Criteria
 

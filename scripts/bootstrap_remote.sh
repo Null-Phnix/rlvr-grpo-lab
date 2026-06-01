@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+INSTALL_TRAIN=false
+if [ "${1:-}" = "--train" ]; then
+  INSTALL_TRAIN=true
+  shift
+fi
+
 UV_BIN="${HOME}/.local/bin/uv"
 export UV_LINK_MODE="${UV_LINK_MODE:-copy}"
 
@@ -16,9 +22,17 @@ else
 fi
 
 "${UV_CMD}" python install 3.12
-"${UV_CMD}" sync --extra dev
+if [ "${INSTALL_TRAIN}" = true ]; then
+  "${UV_CMD}" sync --locked --extra train --extra dev
+else
+  "${UV_CMD}" sync --locked --extra dev
+fi
 
 echo
-echo "Dev workspace ready."
-echo "For training dependencies, run:"
-echo "${UV_CMD} sync --extra train --extra dev"
+if [ "${INSTALL_TRAIN}" = true ]; then
+  echo "Training workspace ready."
+else
+  echo "Dev workspace ready."
+  echo "For training dependencies, run:"
+  echo "bash scripts/bootstrap_remote.sh --train"
+fi

@@ -1,0 +1,18 @@
+{
+  "adapter_path": null,
+  "avg_completion_chars": 505.4609375,
+  "config_path": "configs/eval_cloud_3b_train512_strict_final_stopaware_pseudo.yaml",
+  "exact_accuracy": 0.74609375,
+  "exact_correct": 382,
+  "final_format_count": 411,
+  "final_format_rate": 0.802734375,
+  "final_line_format_count": 220,
+  "final_line_format_rate": 0.4296875,
+  "missing_answer_count": 0,
+  "missing_answer_rate": 0.0,
+  "model_name_or_path": "Qwen/Qwen2.5-3B-Instruct",
+  "num_examples": 512,
+  "output_dir": "outputs/evals/cloud_3b_train512_strict_final_stopaware_pseudo",
+  "trailing_text_count": 0,
+  "trailing_text_rate": 0.0
+}

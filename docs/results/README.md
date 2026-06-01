@@ -1,0 +1,36 @@
+# Promoted Result Evidence
+
+This folder contains small, committed evidence files for promoted or decision-critical runs. Large checkpoints, full `samples.jsonl` files, and generated training outputs remain under ignored `outputs/`.
+
+Every result promoted in the README should have a config path, output path, summary, sample comparison when applicable, and conclusion.
+
+## Current Baseline
+
+| Run | Source Output | Exact | Strict Final Line | Trailing Text | Why It Matters |
+| --- | --- | ---: | ---: | ---: | --- |
+| Boundary SFT 384 stop-aware | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_128` | 107/128 | 62/128 | 0/128 | Current promoted baseline. |
+| Boundary SFT 384 raw | `outputs/evals/cloud_3b_boundary_sft_strict_384_128` | 107/128 | 59/128 | 6/128 | Shows the 384-token budget recovers exact answers, but raw generation still trails. |
+| Cleanup GRPO 384 stop-aware | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_384_128` | 103/128 | 65/128 | 0/128 | Cleaner format, but loses 4 exact answers vs the baseline. |
+| Cleanup GRPO 384 raw | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_384_128` | 103/128 | 64/128 | 4/128 | Confirms cleanup mostly trades exactness for answer-contract cleanliness. |
+| Boundary SFT 128 stop-aware | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_128` | 100/128 | 53/128 | 0/128 | Earlier promoted result before the 384-token sensitivity check. |
+| Train-512 pseudo-label pass | `outputs/evals/cloud_3b_train512_strict_final_stopaware_pseudo` | 382/512 | 220/512 | 0/512 | Source pass for boundary-SFT data filtering. |
+
+## Files
+
+- `current_promoted_baseline/`: summary and failure analysis for boundary SFT 384 stop-aware.
+- `boundary_sft_384_raw/`: raw-generation control for the same adapter and token budget.
+- `cleanup_grpo_384_stopaware/`: cleanup-GRPO 384 stop-aware summary plus comparison against the current baseline.
+- `cleanup_grpo_384_raw/`: raw cleanup-GRPO 384 summary plus comparison against boundary SFT raw 384.
+- `boundary_sft_128_stopaware/`: earlier boundary-SFT result and comparison against the base stop-aware eval.
+- `train512_pseudo_labels/`: pseudo-label generation summary used to build the first boundary-SFT dataset.
+
+## Reproducibility Notes
+
+These files are evidence snapshots, not the full generated artifacts. The full local outputs include `samples.jsonl`, logs, adapter checkpoints, and checksums under ignored `outputs/`.
+
+Before promoting a new result:
+
+1. Run the eval from a checked-in config.
+2. Save `summary.json`, `failure_analysis.json`, and any comparison report into `docs/results/`.
+3. Update the README and `docs/runs/experiment_ledger.md`.
+4. Keep large checkpoints and full sample files out of Git.

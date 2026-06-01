@@ -1,0 +1,18 @@
+{
+  "adapter_path": "outputs/cloud_3b_boundary_sft_cleanup_grpo/checkpoint-40",
+  "avg_completion_chars": 497.65625,
+  "config_path": "configs/eval_cloud_3b_boundary_sft_cleanup_grpo_40_strict_384_128.yaml",
+  "exact_accuracy": 0.8046875,
+  "exact_correct": 103,
+  "final_format_count": 117,
+  "final_format_rate": 0.9140625,
+  "final_line_format_count": 64,
+  "final_line_format_rate": 0.5,
+  "missing_answer_count": 0,
+  "missing_answer_rate": 0.0,
+  "model_name_or_path": "Qwen/Qwen2.5-3B-Instruct",
+  "num_examples": 128,
+  "output_dir": "outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_384_128",
+  "trailing_text_count": 4,
+  "trailing_text_rate": 0.03125
+}

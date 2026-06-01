@@ -1,0 +1,18 @@
+{
+  "adapter_path": "outputs/cloud_3b_boundary_sft_warmup",
+  "avg_completion_chars": 480.8828125,
+  "config_path": "configs/eval_cloud_3b_boundary_sft_strict_stopaware_128.yaml",
+  "exact_accuracy": 0.78125,
+  "exact_correct": 100,
+  "final_format_count": 102,
+  "final_format_rate": 0.796875,
+  "final_line_format_count": 53,
+  "final_line_format_rate": 0.4140625,
+  "missing_answer_count": 0,
+  "missing_answer_rate": 0.0,
+  "model_name_or_path": "Qwen/Qwen2.5-3B-Instruct",
+  "num_examples": 128,
+  "output_dir": "outputs/evals/cloud_3b_boundary_sft_strict_stopaware_128",
+  "trailing_text_count": 0,
+  "trailing_text_rate": 0.0
+}
