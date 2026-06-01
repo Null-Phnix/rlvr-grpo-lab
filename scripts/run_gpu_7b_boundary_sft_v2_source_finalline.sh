@@ -11,6 +11,8 @@ fi
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 source scripts/gpu_run_lib.sh
 
+run_eval_config configs/eval_cloud_7b_strict_stopaware_384_128.yaml
+
 run_eval_config configs/eval_cloud_7b_train2048_strict_final_stopaware_pseudo.yaml
 
 run_logged build_cloud_7b_boundary_sft_train2048_source_finalline \
@@ -26,7 +28,22 @@ run_logged cloud_7b_boundary_sft_v2_source_finalline \
 checksum_adapter_dir outputs/cloud_7b_boundary_sft_v2_source_finalline
 
 run_eval_config configs/eval_cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128.yaml
+run_python_module rlvr_lab.compare_samples \
+  outputs/evals/cloud_7b_strict_stopaware_384_128 \
+  outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128 \
+  --baseline-label 7b-base-384 \
+  --candidate-label 7b-boundary-sft-v2-source-finalline-384 \
+  --output outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128/comparison_vs_7b_base_384_128.md
+checksum_eval_dir outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128
 
 if [ "${2:-}" = "--eval-512" ]; then
+  run_eval_config configs/eval_cloud_7b_strict_stopaware_384_512.yaml
   run_eval_config configs/eval_cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_512.yaml
+  run_python_module rlvr_lab.compare_samples \
+    outputs/evals/cloud_7b_strict_stopaware_384_512 \
+    outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_512 \
+    --baseline-label 7b-base-384-512 \
+    --candidate-label 7b-boundary-sft-v2-source-finalline-384-512 \
+    --output outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_512/comparison_vs_7b_base_384_512.md
+  checksum_eval_dir outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_512
 fi

@@ -77,6 +77,13 @@ uv run python -m rlvr_lab.train_format_sft \
 
 Do not use `configs/cloud_7b_grpo.yaml` as the next 7B experiment. Do not port the rejected unfiltered 3B v2 recipe directly.
 
+Run the 7B base 128-example comparison baseline first:
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_7b_strict_stopaware_384_128.yaml
+```
+
 Generate 7B pseudo-labels:
 
 ```bash
@@ -107,13 +114,24 @@ uv run python -m rlvr_lab.eval_model \
   --config configs/eval_cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128.yaml
 ```
 
+Compare adapter samples against the 7B base model:
+
+```bash
+uv run python -m rlvr_lab.compare_samples \
+  outputs/evals/cloud_7b_strict_stopaware_384_128 \
+  outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128 \
+  --baseline-label 7b-base-384 \
+  --candidate-label 7b-boundary-sft-v2-source-finalline-384 \
+  --output outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128/comparison_vs_7b_base_384_128.md
+```
+
 Or run the guarded end-to-end script:
 
 ```bash
 bash scripts/run_gpu_7b_boundary_sft_v2_source_finalline.sh --approved-after-3b-v4
 ```
 
-Only add `--eval-512` after the 128-example gate is worth promoting:
+Only add `--eval-512` after the 128-example gate is worth promoting. With this flag, the script runs both the 7B base 512 eval and the adapter 512 eval, then writes the base-vs-adapter comparison:
 
 ```bash
 bash scripts/run_gpu_7b_boundary_sft_v2_source_finalline.sh --approved-after-3b-v4 --eval-512
