@@ -34,6 +34,8 @@ The first serious cloud run used `Qwen/Qwen2.5-3B-Instruct` on a RunPod A100-SXM
 | Boundary SFT stop-aware eval | 100/128 | 53/128 | 0/128 | 480.88 | Confirms answer quality gain is not a trailing-text artifact. |
 | Boundary SFT -> cleanup GRPO step 40 raw eval | 100/128 | 57/128 | 3/128 | 477.59 | Light cleanup GRPO preserves exact, improves final-line format, and trims raw trailing cases. |
 | Boundary SFT -> cleanup GRPO step 40 stop-aware eval | 100/128 | 57/128 | 0/128 | 477.29 | Same exact score with clean post-answer termination. |
+| Boundary SFT 384-token stop-aware eval | 107/128 | 62/128 | 0/128 | 494.98 | Larger eval budget recovers clipped correct answers; best current exact score. |
+| Boundary cleanup GRPO 384-token stop-aware eval | 103/128 | 65/128 | 0/128 | 494.20 | Cleaner final-line format, but loses 4 exact answers vs boundary SFT at the same token budget. |
 
 The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. Starting fresh from the base 3B policy avoided the SFT length collapse, but strict final-line exactness was too sparse to learn directly. Adding dense marker/curriculum rewards kept marker correctness learnable during training, but did not teach clean stopping and worsened held-out exact accuracy.
 
@@ -165,6 +167,20 @@ uv run python -m rlvr_lab.eval_model \
 ```
 
 Sample-level comparison against boundary SFT shows 5 exact wins and 5 exact losses, so this should be treated as output-contract cleanup, not an accuracy gain. The useful next step is to inspect the remaining 3 raw trailing cases and the 5 lost examples before adding more reward pressure.
+
+A 384-token sensitivity eval found an important cap effect. Boundary SFT improves from 100/128 to 107/128 exact under the larger budget, while cleanup GRPO improves from 100/128 to 103/128. At the fair 384-token budget, cleanup has 0 exact wins and 4 exact losses vs boundary SFT; it only wins on final-line format. The best current accuracy baseline is therefore boundary SFT with strict stop-aware 384-token eval, not the cleanup adapter.
+
+384-token control configs:
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_strict_stopaware_384_128.yaml
+```
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_384_128.yaml
+```
 
 ## Hardware Plan
 

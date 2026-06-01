@@ -29,6 +29,17 @@ These runs use the base model with generation postprocessing only. They do not t
 | Boundary SFT strict stop-aware eval | `configs/eval_cloud_3b_boundary_sft_strict_stopaware_128.yaml` | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_128` | 100/128 | 53/128 | 0/128 | 480.88 | Confirms boundary-SFT exact gain is preserved after clipping the remaining raw trailing text. |
 | Boundary cleanup GRPO step 40 stop-aware eval | `configs/eval_cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_128.yaml` | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_128` | 100/128 | 57/128 | 0/128 | 477.29 | Keeps the accepted cleanup checkpoint exact score while removing all remaining post-answer text. |
 
+## Cloud 3B 384-Token Sensitivity Evals
+
+These runs test whether the 256-token eval budget clipped correct completions.
+
+| Run | Eval Config | Eval Output | Exact | Strict Final Line | Trailing Text | Avg Chars | Conclusion |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| Boundary SFT 384 raw eval | `configs/eval_cloud_3b_boundary_sft_strict_384_128.yaml` | `outputs/evals/cloud_3b_boundary_sft_strict_384_128` | 107/128 | 59/128 | 6/128 | 512.19 | Larger budget recovers 7 exact cases but adds one raw trailing case vs the 256-token boundary SFT eval. |
+| Boundary SFT 384 stop-aware eval | `configs/eval_cloud_3b_boundary_sft_strict_stopaware_384_128.yaml` | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_128` | 107/128 | 62/128 | 0/128 | 494.98 | Best current exact score with clean stopping. |
+| Boundary cleanup GRPO step 40 384 raw eval | `configs/eval_cloud_3b_boundary_sft_cleanup_grpo_40_strict_384_128.yaml` | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_384_128` | 103/128 | 64/128 | 4/128 | 497.66 | Improves over its 256-token eval, but is exact-worse than boundary SFT at the same budget. |
+| Boundary cleanup GRPO step 40 384 stop-aware eval | `configs/eval_cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_384_128.yaml` | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_384_128` | 103/128 | 65/128 | 0/128 | 494.20 | Gains 3 strict-final-line cases vs boundary SFT 384 stop-aware, but loses 4 exact answers. |
+
 ## Candidate Next Runs
 
 | Run | Config | Starting Point | Purpose | Run Status |
@@ -58,6 +69,8 @@ The next training branch is boundary SFT self-distillation. It should generate 5
 Boundary SFT succeeded. The pseudo-label pass scored 382/512 exact and the filter kept 350 exact marked-answer examples. The boundary adapter scored 100/128 exact on raw strict eval, with strict final-line format 51/128 and trailing text 5/128. Its stop-aware eval also scored 100/128 exact, strict final-line 53/128, and trailing text 0/128. Compared with the original base raw eval, the adapter has 15 sample-level wins, 6 losses, and +9 exact overall. Compared with base strict stop-aware, it again has 15 wins, 6 losses, and +9 exact overall. This is the first branch that improves exact accuracy while substantially improving the output contract.
 
 The boundary cleanup GRPO branch partially succeeded. Checkpoint 20 was rejected because it fell to 98/128 exact and did not reduce raw trailing text. Checkpoint 40 preserved 100/128 exact, improved raw strict final-line format from 51/128 to 57/128, and reduced raw trailing text from 5/128 to 3/128. Stop-aware eval of checkpoint 40 kept 100/128 exact, 57/128 strict final-line format, and 0/128 trailing text. Sample comparison vs boundary SFT shows 5 exact wins and 5 exact losses, so this is a contract-cleanup result rather than an accuracy gain. Before spending more GPU, inspect the 3 remaining raw trailing cases and the 5 boundary-SFT-correct examples lost by cleanup GRPO.
+
+The 384-token sensitivity eval changes the model-selection conclusion. The 256-token eval was clipping some correct completions. With `max_new_tokens=384`, boundary SFT rises to 107/128 exact and cleanup GRPO rises to 103/128 exact. At this fair larger budget, cleanup GRPO has 0 exact wins and 4 losses vs boundary SFT, while improving strict final-line format from 62/128 to 65/128 under stop-aware eval. The next promoted baseline should be boundary SFT with strict stop-aware 384-token eval. Do not continue this cleanup-GRPO reward mix unless the goal is explicitly to trade exact accuracy for final-line cleanliness.
 
 ## Base-Policy GRPO Success Criteria
 
