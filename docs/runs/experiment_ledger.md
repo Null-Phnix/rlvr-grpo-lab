@@ -16,6 +16,7 @@ Held-out eval: `configs/eval_cloud_3b_strict_final_128.yaml`, 128 GSM8K test exa
 | Base 3B -> final-line exact GRPO step 50 | `configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml` | `outputs/cloud_3b_base_final_line_exact_grpo_pilot/checkpoint-50` | `outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_step50_128` | 84/128 | 2/128 | 69/128 | 838.60 | Early-stopped: no length collapse, but sparse final-line reward did not teach the contract and exact dropped 7 vs base. |
 | Base 3B -> contract-curriculum GRPO step 150 | `configs/cloud_3b_contract_curriculum_grpo.yaml` | `outputs/cloud_3b_contract_curriculum_grpo/checkpoint-150` | `outputs/evals/cloud_3b_contract_curriculum_grpo_150_128` | 81/128 | 2/128 | 93/128 | 825.80 | Dense marker reward stayed learnable, but clean stopping did not emerge; 6 wins and 16 losses vs base. |
 | Boundary SFT self-distillation | `configs/cloud_3b_boundary_sft_warmup.yaml` | `outputs/cloud_3b_boundary_sft_warmup` | `outputs/evals/cloud_3b_boundary_sft_strict_128` | 100/128 | 51/128 | 5/128 | 488.16 | Succeeds: exact +9 vs base raw, trailing -96, strict-final-line +50. |
+| Boundary SFT -> cleanup GRPO step 40 | `configs/cloud_3b_boundary_sft_cleanup_grpo.yaml` | `outputs/cloud_3b_boundary_sft_cleanup_grpo/checkpoint-40` | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_128` | 100/128 | 57/128 | 3/128 | 477.59 | Preserves boundary-SFT exact accuracy, trims 2 raw trailing cases, and gains 6 strict-final-line cases; step 20 was rejected at 98/128 exact. |
 
 ## Cloud 3B Stop-Aware Evals
 
@@ -26,6 +27,7 @@ These runs use the base model with generation postprocessing only. They do not t
 | Base 3B strict stop-aware eval | `configs/eval_cloud_3b_strict_final_stopaware_128.yaml` | `outputs/evals/cloud_3b_strict_final_stopaware_128` | 91/128 | 58/128 | 0/128 | 515.46 | Preserves base exact accuracy, removes all trailing text, and gains 57 strict-final-line cases. |
 | Base 3B minimal stop-aware eval | `configs/eval_cloud_3b_minimal_final_stopaware_128.yaml` | `outputs/evals/cloud_3b_minimal_final_stopaware_128` | 80/128 | 57/128 | 0/128 | 690.27 | Removes trailing text but loses 11 exact answers vs strict stop-aware. |
 | Boundary SFT strict stop-aware eval | `configs/eval_cloud_3b_boundary_sft_strict_stopaware_128.yaml` | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_128` | 100/128 | 53/128 | 0/128 | 480.88 | Confirms boundary-SFT exact gain is preserved after clipping the remaining raw trailing text. |
+| Boundary cleanup GRPO step 40 stop-aware eval | `configs/eval_cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_128.yaml` | `outputs/evals/cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_128` | 100/128 | 57/128 | 0/128 | 477.29 | Keeps the accepted cleanup checkpoint exact score while removing all remaining post-answer text. |
 
 ## Candidate Next Runs
 
@@ -35,7 +37,7 @@ These runs use the base model with generation postprocessing only. They do not t
 | Base 3B contract-curriculum GRPO | `configs/cloud_3b_contract_curriculum_grpo.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Add a denser contract reward before strict final-line exactness, so the model can get signal for answer-marker placement and stopping without compressing reasoning. | Complete |
 | Stop-aware base-policy branch | `configs/eval_cloud_3b_strict_final_stopaware_128.yaml`, `configs/eval_cloud_3b_minimal_final_stopaware_128.yaml` | `Qwen/Qwen2.5-3B-Instruct` | Change generation or prompt boundaries so the model can terminate after the answer line before spending more GRPO on stopping rewards. | Strict stop-aware complete; minimal rejected |
 | Boundary SFT self-distillation | `configs/cloud_3b_boundary_sft_warmup.yaml` | `Qwen/Qwen2.5-3B-Instruct` + strict stop-aware pseudo-labels | Train EOS after the correct `####` boundary using base-model exact-correct completions instead of short gold rationales or sparse reward-only GRPO. | Complete; best adapter so far |
-| Boundary SFT -> cleanup GRPO | tbd | `outputs/cloud_3b_boundary_sft_warmup` | Preserve the 100/128 exact score while removing the remaining 5 raw trailing cases and recovering final-line format. | Proposed |
+| Boundary SFT -> cleanup GRPO | `configs/cloud_3b_boundary_sft_cleanup_grpo.yaml` | `outputs/cloud_3b_boundary_sft_warmup` | Preserve the 100/128 exact score while removing the remaining 5 raw trailing cases and recovering final-line format. | Complete; checkpoint 40 accepted, checkpoint 20 rejected |
 
 ## Current Read
 
@@ -54,6 +56,8 @@ Phnixbox can run tiny 3B stop-aware evals on the RTX 4060, but only at the edge 
 The next training branch is boundary SFT self-distillation. It should generate 512 strict-prompt train-split completions with stop-aware postprocessing, keep only examples that are exact-correct and have a correct `####` marker, then SFT the model on those clipped model-native completions plus EOS. This directly trains the answer boundary while preserving the base model's own reasoning distribution. It avoids the previous rationale-SFT failure mode, where gold rationales compressed output length and cost exact accuracy, and it avoids more reward-only GRPO before the boundary is learnable.
 
 Boundary SFT succeeded. The pseudo-label pass scored 382/512 exact and the filter kept 350 exact marked-answer examples. The boundary adapter scored 100/128 exact on raw strict eval, with strict final-line format 51/128 and trailing text 5/128. Its stop-aware eval also scored 100/128 exact, strict final-line 53/128, and trailing text 0/128. Compared with the original base raw eval, the adapter has 15 sample-level wins, 6 losses, and +9 exact overall. Compared with base strict stop-aware, it again has 15 wins, 6 losses, and +9 exact overall. This is the first branch that improves exact accuracy while substantially improving the output contract.
+
+The boundary cleanup GRPO branch partially succeeded. Checkpoint 20 was rejected because it fell to 98/128 exact and did not reduce raw trailing text. Checkpoint 40 preserved 100/128 exact, improved raw strict final-line format from 51/128 to 57/128, and reduced raw trailing text from 5/128 to 3/128. Stop-aware eval of checkpoint 40 kept 100/128 exact, 57/128 strict final-line format, and 0/128 trailing text. Sample comparison vs boundary SFT shows 5 exact wins and 5 exact losses, so this is a contract-cleanup result rather than an accuracy gain. Before spending more GPU, inspect the 3 remaining raw trailing cases and the 5 boundary-SFT-correct examples lost by cleanup GRPO.
 
 ## Base-Policy GRPO Success Criteria
 

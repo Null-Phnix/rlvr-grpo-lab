@@ -32,6 +32,8 @@ The first serious cloud run used `Qwen/Qwen2.5-3B-Instruct` on a RunPod A100-SXM
 | Base 3B minimal stop-aware eval | 80/128 | 57/128 | 0/128 | 690.27 | Worse exact accuracy; not the next baseline. |
 | Boundary SFT raw eval | 100/128 | 51/128 | 5/128 | 488.16 | Self-distilled boundary adapter improves exact and mostly learns to stop. |
 | Boundary SFT stop-aware eval | 100/128 | 53/128 | 0/128 | 480.88 | Confirms answer quality gain is not a trailing-text artifact. |
+| Boundary SFT -> cleanup GRPO step 40 raw eval | 100/128 | 57/128 | 3/128 | 477.59 | Light cleanup GRPO preserves exact, improves final-line format, and trims raw trailing cases. |
+| Boundary SFT -> cleanup GRPO step 40 stop-aware eval | 100/128 | 57/128 | 0/128 | 477.29 | Same exact score with clean post-answer termination. |
 
 The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. Starting fresh from the base 3B policy avoided the SFT length collapse, but strict final-line exactness was too sparse to learn directly. Adding dense marker/curriculum rewards kept marker correctness learnable during training, but did not teach clean stopping and worsened held-out exact accuracy.
 
@@ -137,7 +139,32 @@ uv run python -m rlvr_lab.eval_model \
   --config configs/eval_cloud_3b_boundary_sft_strict_stopaware_128.yaml
 ```
 
-This adapter is the best current starting point for a follow-up GRPO run. A useful next GRPO branch should start from `outputs/cloud_3b_boundary_sft_warmup`, keep the strict prompt, and use light rewards to preserve exactness while cleaning the remaining 5 raw trailing cases and recovering final-line format.
+This adapter became the starting point for a light cleanup-GRPO branch.
+
+## Boundary Cleanup GRPO Result
+
+This branch starts from `outputs/cloud_3b_boundary_sft_warmup`, keeps the strict prompt, and applies a low-learning-rate 40-step GRPO pass with correctness still dominant and moderate final-line/trailing rewards:
+
+```bash
+uv run python -m rlvr_lab.train_grpo \
+  --config configs/cloud_3b_boundary_sft_cleanup_grpo.yaml
+```
+
+Checkpoint 20 was rejected: exact accuracy fell to 98/128 and raw trailing stayed at 5/128. Checkpoint 40 is the current cleanup winner. It preserves the boundary SFT score at 100/128 exact, improves strict final-line format from 51/128 to 57/128 on raw generation, and reduces raw trailing text from 5/128 to 3/128. Stop-aware eval keeps the same 100/128 exact and 57/128 final-line score with 0/128 trailing cases.
+
+Evaluate the accepted checkpoint:
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_cleanup_grpo_40_strict_128.yaml
+```
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_cleanup_grpo_40_strict_stopaware_128.yaml
+```
+
+Sample-level comparison against boundary SFT shows 5 exact wins and 5 exact losses, so this should be treated as output-contract cleanup, not an accuracy gain. The useful next step is to inspect the remaining 3 raw trailing cases and the 5 lost examples before adding more reward pressure.
 
 ## Hardware Plan
 
