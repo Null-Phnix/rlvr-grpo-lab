@@ -22,7 +22,7 @@ Held-out eval: `configs/eval_cloud_3b_strict_final_128.yaml`, 128 GSM8K test exa
 | --- | --- | --- | --- | --- |
 | Base 3B final-line exact GRPO pilot | `configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Test whether direct GRPO can preserve base reasoning while learning the final-line contract without recreating the SFT length collapse. | Early-stopped at step 50 |
 | Base 3B contract-curriculum GRPO | `configs/cloud_3b_contract_curriculum_grpo.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Add a denser contract reward before strict final-line exactness, so the model can get signal for answer-marker placement and stopping without compressing reasoning. | Complete |
-| Stop-aware base-policy branch | tbd | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Change generation or prompt boundaries so the model can terminate after the answer line before spending more GRPO on stopping rewards. | Proposed |
+| Stop-aware base-policy branch | `configs/eval_cloud_3b_strict_final_stopaware_128.yaml`, `configs/eval_cloud_3b_minimal_final_stopaware_128.yaml` | `Qwen/Qwen2.5-3B-Instruct` | Change generation or prompt boundaries so the model can terminate after the answer line before spending more GRPO on stopping rewards. | Eval configs ready |
 
 ## Current Read
 
@@ -33,6 +33,8 @@ The direct base-policy GRPO run did not reproduce the SFT length collapse: avera
 The contract-curriculum run made the intermediate marker reward dense enough to learn from, but did not solve the actual stopping problem. Training ended with `conversation_leak_rate=0.05`, but `final_line_exact_accuracy=0` and `contract_clean_stop_rate=0`. Held-out exact accuracy fell to 81/128, strict final-line format stayed at 2/128, and the sample comparison showed 6 wins and 16 losses vs base. The dominant failure mode is still continuing after a correct answer marker, sometimes by repeating prompt instructions.
 
 Stop-aware postprocessing confirms this is primarily a termination problem. Truncating each completion after the first `#### <number>` marker keeps exact accuracy unchanged while removing trailing text. On the base eval, strict final-line format improves from 1/128 to 58/128 with exact still 91/128. On the contract-curriculum eval, strict final-line format improves from 2/128 to 66/128 with exact still 81/128. The next useful test is a prompt/generation-boundary eval, not more reward-only GRPO.
+
+Phnixbox can run tiny 3B stop-aware evals on the RTX 4060, but only at the edge of VRAM with CPU offload. A 16-example strict-final stop-aware smoke took 4m12s and scored 6/16 exact, 8/16 strict final line, 0/16 trailing text. A 16-example minimal-final stop-aware smoke took 2m06s and scored 7/16 exact, 3/16 strict final line, 0/16 trailing text. Treat these as hardware/procedure checks, not promoted model results. The 4060 is fine for smoke tests; 128+ example 3B sweeps and training should still use rented GPU.
 
 ## Base-Policy GRPO Success Criteria
 
@@ -88,6 +90,18 @@ Stop-aware analysis:
 ~/.local/bin/uv run python -m rlvr_lab.analyze_samples \
   outputs/evals/cloud_3b_contract_curriculum_grpo_150_128 \
   --output outputs/evals/cloud_3b_contract_curriculum_grpo_150_128/failure_analysis.json
+```
+
+Phnixbox 3B stop-aware smoke:
+
+```bash
+~/.local/bin/uv run --extra train python -m rlvr_lab.eval_model \
+  --config configs/eval_phnixbox_3b_strict_final_stopaware_smoke.yaml
+```
+
+```bash
+~/.local/bin/uv run --extra train python -m rlvr_lab.eval_model \
+  --config configs/eval_phnixbox_3b_minimal_final_stopaware_smoke.yaml
 ```
 
 Required comparisons:
