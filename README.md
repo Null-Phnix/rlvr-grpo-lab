@@ -30,6 +30,8 @@ The first serious cloud run used `Qwen/Qwen2.5-3B-Instruct` on a RunPod A100-SXM
 | Base 3B -> contract-curriculum GRPO step 150 | 81/128 | 2/128 | 93/128 | 825.80 | Dense marker reward stayed learnable, but clean stopping still failed. |
 | Base 3B strict stop-aware eval | 91/128 | 58/128 | 0/128 | 515.46 | Preserves base exact accuracy and removes trailing text without training. |
 | Base 3B minimal stop-aware eval | 80/128 | 57/128 | 0/128 | 690.27 | Worse exact accuracy; not the next baseline. |
+| Boundary SFT raw eval | 100/128 | 51/128 | 5/128 | 488.16 | Self-distilled boundary adapter improves exact and mostly learns to stop. |
+| Boundary SFT stop-aware eval | 100/128 | 53/128 | 0/128 | 480.88 | Confirms answer quality gain is not a trailing-text artifact. |
 
 The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. Starting fresh from the base 3B policy avoided the SFT length collapse, but strict final-line exactness was too sparse to learn directly. Adding dense marker/curriculum rewards kept marker correctness learnable during training, but did not teach clean stopping and worsened held-out exact accuracy.
 
@@ -95,9 +97,11 @@ Stop-aware eval configs:
   --config configs/eval_cloud_3b_minimal_final_stopaware_128.yaml
 ```
 
-## Next Training Branch: Boundary SFT
+## Boundary SFT Result
 
-The next training branch is not another reward-only GRPO run. It uses strict-prompt base-model completions as self-distillation data, keeps only exact-correct examples with a correct `####` marker, truncates each completion at that marker, and trains the adapter to emit EOS immediately after the boundary.
+This branch uses strict-prompt base-model completions as self-distillation data, keeps only exact-correct examples with a correct `####` marker, truncates each completion at that marker, and trains the adapter to emit EOS immediately after the boundary.
+
+The train pseudo-label pass generated 512 strict stop-aware train-split completions. The filter kept 350 boundary examples. The trained adapter improved held-out exact accuracy from 91/128 to 100/128. Raw trailing text fell from 101/128 to 5/128; stop-aware eval removed those remaining 5 without changing exact accuracy.
 
 Generate pseudo-labels on a rented GPU:
 
@@ -133,7 +137,7 @@ uv run python -m rlvr_lab.eval_model \
   --config configs/eval_cloud_3b_boundary_sft_strict_stopaware_128.yaml
 ```
 
-Success means raw strict eval improves trailing text and final-line format while stop-aware eval stays near the base `91/128` exact score. If stop-aware exact drops materially, the SFT adapter damaged reasoning and should not become the GRPO starting point.
+This adapter is the best current starting point for a follow-up GRPO run. A useful next GRPO branch should start from `outputs/cloud_3b_boundary_sft_warmup`, keep the strict prompt, and use light rewards to preserve exactness while cleaning the remaining 5 raw trailing cases and recovering final-line format.
 
 ## Hardware Plan
 
