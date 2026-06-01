@@ -2,6 +2,20 @@
 
 This runbook is ordered to avoid wasting rented GPU time on stale branches.
 
+## Pod Setup
+
+After cloning or syncing this repo on a pod, install the training environment:
+
+```bash
+bash scripts/bootstrap_remote.sh --train
+```
+
+The GPU scripts use `uv run python` by default. If the pod has a prebuilt venv that should be used instead, set `RLVR_PYTHON`:
+
+```bash
+export RLVR_PYTHON=/root/rlvr-venv/bin/python
+```
+
 ## Current Promoted Baseline
 
 Use this as the 3B model-selection baseline:
@@ -23,15 +37,13 @@ Expected snapshot from the promoted run:
 Run the current boundary-SFT adapter on a larger held-out set before new training:
 
 ```bash
-uv run python -m rlvr_lab.eval_model \
-  --config configs/eval_cloud_3b_boundary_sft_strict_stopaware_384_512.yaml
+bash scripts/run_gpu_3b_baseline_eval.sh
 ```
 
 Optional full test-set sweep:
 
 ```bash
-uv run python -m rlvr_lab.eval_model \
-  --config configs/eval_cloud_3b_boundary_sft_strict_stopaware_384_full.yaml
+bash scripts/run_gpu_3b_baseline_eval.sh --full
 ```
 
 Promote the 512/full result only after adding `summary.json`, `failure_analysis.json`, and a comparison report to `docs/results/`.
@@ -63,15 +75,13 @@ uv run python -m rlvr_lab.train_format_sft \
 Eval v2 on the 128-example gate:
 
 ```bash
-uv run python -m rlvr_lab.eval_model \
-  --config configs/eval_cloud_3b_boundary_sft_v2_strict_stopaware_384_128.yaml
+bash scripts/run_gpu_3b_boundary_sft_v2.sh
 ```
 
 If v2 matches or beats the current `107/128` exact baseline, run the 512-example eval:
 
 ```bash
-uv run python -m rlvr_lab.eval_model \
-  --config configs/eval_cloud_3b_boundary_sft_v2_strict_stopaware_384_512.yaml
+bash scripts/run_gpu_3b_boundary_sft_v2.sh --eval-512
 ```
 
 ## Phase 3: 7B Boundary SFT
@@ -103,9 +113,10 @@ uv run python -m rlvr_lab.train_format_sft \
 Evaluate the 7B adapter:
 
 ```bash
-uv run python -m rlvr_lab.eval_model \
-  --config configs/eval_cloud_7b_boundary_sft_v1_strict_stopaware_384_512.yaml
+bash scripts/run_gpu_7b_boundary_sft_v1.sh --approved-after-3b
 ```
+
+The 7B script refuses to run without `--approved-after-3b` so it is not launched by accident.
 
 ## Promotion Rules
 
