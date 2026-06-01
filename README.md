@@ -28,6 +28,8 @@ The first serious cloud run used `Qwen/Qwen2.5-3B-Instruct` on a RunPod A100-SXM
 | Checkpoint 500 -> final-line exact reward | 87/128 | 124/128 | 0/128 | 266.80 | Cleaner and shorter, exact still plateaued. |
 | Base 3B -> final-line exact GRPO step 50 | 84/128 | 2/128 | 69/128 | 838.60 | No length collapse, but contract did not learn. |
 | Base 3B -> contract-curriculum GRPO step 150 | 81/128 | 2/128 | 93/128 | 825.80 | Dense marker reward stayed learnable, but clean stopping still failed. |
+| Base 3B strict stop-aware eval | 91/128 | 58/128 | 0/128 | 515.46 | Preserves base exact accuracy and removes trailing text without training. |
+| Base 3B minimal stop-aware eval | 80/128 | 57/128 | 0/128 | 690.27 | Worse exact accuracy; not the next baseline. |
 
 The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. Starting fresh from the base 3B policy avoided the SFT length collapse, but strict final-line exactness was too sparse to learn directly. Adding dense marker/curriculum rewards kept marker correctness learnable during training, but did not teach clean stopping and worsened held-out exact accuracy.
 
@@ -78,6 +80,8 @@ The current failure mode is measurable without another training run:
 ```
 
 Oracle stop-after-marker analysis keeps exact accuracy unchanged while removing trailing text. On the base eval, it moves strict final-line format from 1/128 to 58/128 with exact still 91/128. On the contract-curriculum eval, it moves strict final-line format from 2/128 to 66/128 with exact still 81/128. That means the model often has a usable marked answer; the missing piece is termination.
+
+The promoted A100 eval confirms the oracle read. `configs/eval_cloud_3b_strict_final_stopaware_128.yaml` keeps exact accuracy at 91/128, moves strict final-line format from 1/128 to 58/128, and removes all 101 trailing-text cases. `configs/eval_cloud_3b_minimal_final_stopaware_128.yaml` removes trailing text too, but drops exact accuracy to 80/128. The strict prompt plus stop-aware postprocessing is the current strongest base-policy baseline.
 
 Stop-aware eval configs:
 
