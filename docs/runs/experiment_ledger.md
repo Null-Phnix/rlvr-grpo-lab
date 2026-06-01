@@ -14,19 +14,23 @@ Held-out eval: `configs/eval_cloud_3b_strict_final_128.yaml`, 128 GSM8K test exa
 | SFT -> GRPO resume 500 | `configs/cloud_3b_strict_grpo_resume_pilot_500.yaml` | `outputs/cloud_3b_strict_grpo_after_rationale_sft_pilot/checkpoint-500` | `outputs/evals/cloud_3b_post_strict_grpo_resume_pilot_500_128` | 87/128 | 123/128 | 0/128 | 281.06 | Exact plateau; 3 wins and 3 losses vs checkpoint 100. |
 | Checkpoint 500 -> final-line exact reward | `configs/cloud_3b_final_line_exact_grpo_after_500.yaml` | `outputs/cloud_3b_final_line_exact_grpo_after_500/checkpoint-100` | `outputs/evals/cloud_3b_final_line_exact_grpo_after_500_128` | 87/128 | 124/128 | 0/128 | 266.80 | Cleaner and shorter, but exact still plateaued; 3 wins and 3 losses vs checkpoint 500. |
 | Base 3B -> final-line exact GRPO step 50 | `configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml` | `outputs/cloud_3b_base_final_line_exact_grpo_pilot/checkpoint-50` | `outputs/evals/cloud_3b_base_final_line_exact_grpo_pilot_step50_128` | 84/128 | 2/128 | 69/128 | 838.60 | Early-stopped: no length collapse, but sparse final-line reward did not teach the contract and exact dropped 7 vs base. |
+| Base 3B -> contract-curriculum GRPO step 150 | `configs/cloud_3b_contract_curriculum_grpo.yaml` | `outputs/cloud_3b_contract_curriculum_grpo/checkpoint-150` | `outputs/evals/cloud_3b_contract_curriculum_grpo_150_128` | 81/128 | 2/128 | 93/128 | 825.80 | Dense marker reward stayed learnable, but clean stopping did not emerge; 6 wins and 16 losses vs base. |
 
 ## Candidate Next Runs
 
 | Run | Config | Starting Point | Purpose | Run Status |
 | --- | --- | --- | --- | --- |
 | Base 3B final-line exact GRPO pilot | `configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Test whether direct GRPO can preserve base reasoning while learning the final-line contract without recreating the SFT length collapse. | Early-stopped at step 50 |
-| Base 3B contract-curriculum GRPO | `configs/cloud_3b_contract_curriculum_grpo.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Add a denser contract reward before strict final-line exactness, so the model can get signal for answer-marker placement and stopping without compressing reasoning. | Ready |
+| Base 3B contract-curriculum GRPO | `configs/cloud_3b_contract_curriculum_grpo.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Add a denser contract reward before strict final-line exactness, so the model can get signal for answer-marker placement and stopping without compressing reasoning. | Complete |
+| Stop-aware base-policy branch | tbd | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Change generation or prompt boundaries so the model can terminate after the answer line before spending more GRPO on stopping rewards. | Proposed |
 
 ## Current Read
 
 The rationale-SFT branch taught the output contract but appears to have capped held-out exact accuracy below the base strict-prompt model. Longer GRPO and final-line exact reward both improved formatting details without moving exact accuracy.
 
 The direct base-policy GRPO run did not reproduce the SFT length collapse: average completion length stayed near the base model. It also did not learn the strict final-line contract. Training metrics stayed at `final_line_exact_accuracy=0` through checkpoint 50, with completions usually clipped at the 384-token cap. Held-out exact accuracy fell from 91/128 to 84/128. This points to reward sparsity, not just SFT forgetting: strict final-line exactness is too rare under the base policy to drive useful contract learning by itself.
+
+The contract-curriculum run made the intermediate marker reward dense enough to learn from, but did not solve the actual stopping problem. Training ended with `conversation_leak_rate=0.05`, but `final_line_exact_accuracy=0` and `contract_clean_stop_rate=0`. Held-out exact accuracy fell to 81/128, strict final-line format stayed at 2/128, and the sample comparison showed 6 wins and 16 losses vs base. The dominant failure mode is still continuing after a correct answer marker, sometimes by repeating prompt instructions.
 
 ## Base-Policy GRPO Success Criteria
 
@@ -46,11 +50,28 @@ Primary checks for the next base-policy run:
 - average completion length should not collapse toward the 266-281 character adapter range unless exact accuracy is preserved
 - compare against the base eval and manually inspect base-correct examples that the new run loses
 
-Next run command:
+Contract-curriculum run command:
 
 ```bash
 ~/.local/bin/uv run python -m rlvr_lab.train_grpo \
   --config configs/cloud_3b_contract_curriculum_grpo.yaml
+```
+
+Contract-curriculum comparison:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.compare_evals \
+  outputs/evals/cloud_3b_strict_final_128_baseline/summary.json \
+  outputs/evals/cloud_3b_contract_curriculum_grpo_150_128/summary.json
+```
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.compare_samples \
+  outputs/evals/cloud_3b_strict_final_128_baseline \
+  outputs/evals/cloud_3b_contract_curriculum_grpo_150_128 \
+  --baseline-label base \
+  --candidate-label contract-curriculum-150 \
+  --output outputs/evals/cloud_3b_contract_curriculum_grpo_150_128/comparison_vs_base.md
 ```
 
 Required comparisons:

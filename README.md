@@ -27,8 +27,9 @@ The first serious cloud run used `Qwen/Qwen2.5-3B-Instruct` on a RunPod A100-SXM
 | SFT -> GRPO resume 500 | 87/128 | 123/128 | 0/128 | 281.06 | Exact plateaued. |
 | Checkpoint 500 -> final-line exact reward | 87/128 | 124/128 | 0/128 | 266.80 | Cleaner and shorter, exact still plateaued. |
 | Base 3B -> final-line exact GRPO step 50 | 84/128 | 2/128 | 69/128 | 838.60 | No length collapse, but contract did not learn. |
+| Base 3B -> contract-curriculum GRPO step 150 | 81/128 | 2/128 | 93/128 | 825.80 | Dense marker reward stayed learnable, but clean stopping still failed. |
 
-The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. Starting fresh from the base 3B policy avoided the SFT length collapse, but strict final-line exactness was too sparse to learn directly: the step-50 run lost 7 exact answers versus the base model and improved strict final-line format by only one example.
+The current conclusion is that this rationale-SFT adapter chain learned the output contract but plateaued below the base model's loose exact accuracy. Longer GRPO and stricter final-line correctness did not move held-out exact accuracy. Starting fresh from the base 3B policy avoided the SFT length collapse, but strict final-line exactness was too sparse to learn directly. Adding dense marker/curriculum rewards kept marker correctness learnable during training, but did not teach clean stopping and worsened held-out exact accuracy.
 
 Detailed records:
 
@@ -55,14 +56,16 @@ Eval it with:
 
 This run asked whether direct GRPO from the base 3B model can preserve the base model's reasoning quality while learning the strict final-line answer contract. It was early-stopped at checkpoint 50 because training metrics stayed at `final_line_exact_accuracy=0` and completions were usually clipped at the 384-token cap. The held-out eval was worse than base exact accuracy, so the next branch should use a denser contract curriculum rather than more steps of the same sparse final-line reward.
 
-## Next Experiment
+## Contract-Curriculum Result
 
-The next useful run still starts from the base 3B policy with fresh LoRA, but it adds intermediate contract rewards before strict final-line exactness. The target is to reward answer-marker placement and stopping behavior without rewarding short reasoning for its own sake. Success means staying near the base model's 91/128 exact score while moving strict final-line format far above 1/128.
+The contract-curriculum run used dense rewards for correct answer markers, conversation-role leakage, and final-answer progress:
 
 ```bash
 ~/.local/bin/uv run python -m rlvr_lab.train_grpo \
   --config configs/cloud_3b_contract_curriculum_grpo.yaml
 ```
+
+Training confirmed the dense signal was active: marker correctness stayed nonzero, and conversation leakage fell by the final training row. Held-out eval still failed the actual contract: only 2/128 examples had strict final-line format, and exact accuracy fell to 81/128. The model often emitted a correct `####` answer and then continued, sometimes by repeating prompt instructions. The next run should not spend more GPU on this reward mix; it needs a generation/stop-token or prompt-boundary intervention before more GRPO.
 
 ## Hardware Plan
 
