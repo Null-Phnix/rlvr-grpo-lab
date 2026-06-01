@@ -20,6 +20,11 @@ STRICT_FINAL_LINE_PROMPT = (
     "Do not write anything after it."
 )
 
+MINIMAL_FINAL_LINE_PROMPT = (
+    "Solve the math problem with concise reasoning. "
+    "End the response with a line formatted exactly like this: #### 42"
+)
+
 FINAL_ONLY_PROMPT = (
     "Solve the math problem internally. "
     "Output exactly one line and no reasoning. "
@@ -43,6 +48,8 @@ def make_prompt(question: str, prompt_style: str = "think_answer") -> str:
         return f"{FINAL_ONLY_PROMPT}\n\nProblem:\n{question}\n\nAnswer:"
     if prompt_style == "strict_final_line":
         return f"{STRICT_FINAL_LINE_PROMPT}\n\nProblem:\n{question}\n\nSolution:"
+    if prompt_style == "minimal_final_line":
+        return f"{MINIMAL_FINAL_LINE_PROMPT}\n\nProblem:\n{question}\n\nSolution:"
     if prompt_style == "think_answer":
         return f"{SYSTEM_PROMPT}\n\nProblem:\n{question}\n\nSolution:"
     raise ValueError(f"unknown prompt_style: {prompt_style}")

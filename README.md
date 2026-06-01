@@ -67,6 +67,30 @@ The contract-curriculum run used dense rewards for correct answer markers, conve
 
 Training confirmed the dense signal was active: marker correctness stayed nonzero, and conversation leakage fell by the final training row. Held-out eval still failed the actual contract: only 2/128 examples had strict final-line format, and exact accuracy fell to 81/128. The model often emitted a correct `####` answer and then continued, sometimes by repeating prompt instructions. The next run should not spend more GPU on this reward mix; it needs a generation/stop-token or prompt-boundary intervention before more GRPO.
 
+## Stop-Aware Analysis
+
+The current failure mode is measurable without another training run:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.analyze_samples \
+  outputs/evals/cloud_3b_contract_curriculum_grpo_150_128 \
+  --output outputs/evals/cloud_3b_contract_curriculum_grpo_150_128/failure_analysis.json
+```
+
+Oracle stop-after-marker analysis keeps exact accuracy unchanged while removing trailing text. On the base eval, it moves strict final-line format from 1/128 to 58/128 with exact still 91/128. On the contract-curriculum eval, it moves strict final-line format from 2/128 to 66/128 with exact still 81/128. That means the model often has a usable marked answer; the missing piece is termination.
+
+Stop-aware eval configs:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_strict_final_stopaware_128.yaml
+```
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_minimal_final_stopaware_128.yaml
+```
+
 ## Hardware Plan
 
 - MacBook: editing, docs, reward/eval development

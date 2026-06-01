@@ -12,6 +12,7 @@ from rich.table import Table
 
 from rlvr_lab.datasets import load_math_dataset
 from rlvr_lab.eval_metrics import score_completion, summarize_records
+from rlvr_lab.postprocess import postprocess_completions
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -102,7 +103,10 @@ def generate_batch(
     for output in output_ids:
         completion_ids = output[input_width:]
         completions.append(tokenizer.decode(completion_ids, skip_special_tokens=True).strip())
-    return completions
+    return postprocess_completions(
+        completions,
+        generation_config.get("postprocess", {}),
+    )
 
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:

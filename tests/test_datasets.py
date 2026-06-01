@@ -33,8 +33,22 @@ def test_make_prompt_supports_final_only() -> None:
     assert "What is 40 + 2?" in prompt
 
 
+def test_make_prompt_supports_minimal_final_line() -> None:
+    prompt = make_prompt("What is 40 + 2?", prompt_style="minimal_final_line")
+    assert "End the response" in prompt
+    assert "Do not write anything after it." not in prompt
+    assert "#### 42" in prompt
+    assert "What is 40 + 2?" in prompt
+
+
 def test_prompt_styles_do_not_use_angle_bracket_placeholders() -> None:
-    for style in ["think_answer", "answer_first", "strict_final_line", "final_only"]:
+    for style in [
+        "think_answer",
+        "answer_first",
+        "strict_final_line",
+        "minimal_final_line",
+        "final_only",
+    ]:
         assert "<number>" not in make_prompt("What is 40 + 2?", prompt_style=style)
         assert "<answer>" not in make_prompt("What is 40 + 2?", prompt_style=style)
 

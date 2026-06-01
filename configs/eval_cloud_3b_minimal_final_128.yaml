@@ -1,0 +1,16 @@
+model_name_or_path: Qwen/Qwen2.5-3B-Instruct
+model:
+  torch_dtype: bfloat16
+  device_map: auto
+dataset:
+  name: openai/gsm8k
+  config: main
+  split: test
+  limit: 128
+  prompt_style: minimal_final_line
+generation:
+  batch_size: 4
+  max_prompt_length: 512
+  max_new_tokens: 256
+  do_sample: false
+output_dir: outputs/evals/cloud_3b_minimal_final_128

@@ -32,6 +32,8 @@ The direct base-policy GRPO run did not reproduce the SFT length collapse: avera
 
 The contract-curriculum run made the intermediate marker reward dense enough to learn from, but did not solve the actual stopping problem. Training ended with `conversation_leak_rate=0.05`, but `final_line_exact_accuracy=0` and `contract_clean_stop_rate=0`. Held-out exact accuracy fell to 81/128, strict final-line format stayed at 2/128, and the sample comparison showed 6 wins and 16 losses vs base. The dominant failure mode is still continuing after a correct answer marker, sometimes by repeating prompt instructions.
 
+Stop-aware postprocessing confirms this is primarily a termination problem. Truncating each completion after the first `#### <number>` marker keeps exact accuracy unchanged while removing trailing text. On the base eval, strict final-line format improves from 1/128 to 58/128 with exact still 91/128. On the contract-curriculum eval, strict final-line format improves from 2/128 to 66/128 with exact still 81/128. The next useful test is a prompt/generation-boundary eval, not more reward-only GRPO.
+
 ## Base-Policy GRPO Success Criteria
 
 The base model solved 91/128 held-out examples, but 77 of those 91 correct completions had trailing text after a final-answer marker and 69 included a `Human:` continuation. The next run should not optimize for brevity. It should preserve the useful reasoning while learning to stop after the final answer line.
@@ -72,6 +74,20 @@ Contract-curriculum comparison:
   --baseline-label base \
   --candidate-label contract-curriculum-150 \
   --output outputs/evals/cloud_3b_contract_curriculum_grpo_150_128/comparison_vs_base.md
+```
+
+Stop-aware analysis:
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.analyze_samples \
+  outputs/evals/cloud_3b_strict_final_128_baseline \
+  --output outputs/evals/cloud_3b_strict_final_128_baseline/failure_analysis.json
+```
+
+```bash
+~/.local/bin/uv run python -m rlvr_lab.analyze_samples \
+  outputs/evals/cloud_3b_contract_curriculum_grpo_150_128 \
+  --output outputs/evals/cloud_3b_contract_curriculum_grpo_150_128/failure_analysis.json
 ```
 
 Required comparisons:
