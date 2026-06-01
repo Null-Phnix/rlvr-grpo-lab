@@ -3,7 +3,9 @@ import pytest
 from rlvr_lab.train_format_sft import (
     build_sft_completion,
     format_gsm8k_rationale_completion,
+    format_sample_completion,
     format_sft_completion,
+    load_sample_completion_rows,
     tokenize_prompt_completion,
 )
 
@@ -22,12 +24,27 @@ def test_format_gsm8k_rationale_completion_preserves_work_and_final_line() -> No
     assert format_gsm8k_rationale_completion(answer, "<eos>") == "\nFirst add.\n#### 42<eos>"
 
 
+def test_format_sample_completion_adds_boundary_newline_and_eos() -> None:
+    assert format_sample_completion("First add.\n#### 42", "<eos>") == (
+        "\nFirst add.\n#### 42<eos>"
+    )
+
+
+def test_format_sample_completion_does_not_duplicate_eos() -> None:
+    assert format_sample_completion("\nFirst add.\n#### 42<eos>", "<eos>") == (
+        "\nFirst add.\n#### 42<eos>"
+    )
+
+
 def test_build_sft_completion_supports_styles() -> None:
-    row = {"answer": "First add.\n#### 42"}
+    row = {"answer": "First add.\n#### 42", "completion": "Model work.\n#### 42"}
 
     assert build_sft_completion(row, "final_only", "<eos>") == "\n#### 42<eos>"
     assert build_sft_completion(row, "gsm8k_rationale", "<eos>") == (
         "\nFirst add.\n#### 42<eos>"
+    )
+    assert build_sft_completion(row, "sample_completion", "<eos>") == (
+        "\nModel work.\n#### 42<eos>"
     )
 
 
@@ -48,3 +65,21 @@ def test_tokenize_prompt_completion_masks_prompt_tokens() -> None:
     assert tokenized["input_ids"][:prompt_length] == [ord(char) for char in "Question:"]
     assert tokenized["labels"][:prompt_length] == [-100] * prompt_length
     assert tokenized["labels"][prompt_length:] == tokenized["input_ids"][prompt_length:]
+
+
+def test_load_sample_completion_rows_filters_empty_rows_and_respects_limit(tmp_path) -> None:
+    samples_path = tmp_path / "boundary.jsonl"
+    samples_path.write_text(
+        '{"prompt": "p1", "completion": "c1"}\n'
+        '{"prompt": "", "completion": "skip"}\n'
+        '{"prompt": "p2", "completion": "c2"}\n',
+        encoding="utf-8",
+    )
+
+    assert load_sample_completion_rows(samples_path, limit=1) == [
+        {"prompt": "p1", "completion": "c1"}
+    ]
+    assert load_sample_completion_rows(samples_path) == [
+        {"prompt": "p1", "completion": "c1"},
+        {"prompt": "p2", "completion": "c2"},
+    ]

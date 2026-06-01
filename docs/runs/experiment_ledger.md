@@ -32,6 +32,7 @@ These runs use the base model with generation postprocessing only. They do not t
 | Base 3B final-line exact GRPO pilot | `configs/cloud_3b_base_final_line_exact_grpo_pilot.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Test whether direct GRPO can preserve base reasoning while learning the final-line contract without recreating the SFT length collapse. | Early-stopped at step 50 |
 | Base 3B contract-curriculum GRPO | `configs/cloud_3b_contract_curriculum_grpo.yaml` | `Qwen/Qwen2.5-3B-Instruct` + fresh LoRA | Add a denser contract reward before strict final-line exactness, so the model can get signal for answer-marker placement and stopping without compressing reasoning. | Complete |
 | Stop-aware base-policy branch | `configs/eval_cloud_3b_strict_final_stopaware_128.yaml`, `configs/eval_cloud_3b_minimal_final_stopaware_128.yaml` | `Qwen/Qwen2.5-3B-Instruct` | Change generation or prompt boundaries so the model can terminate after the answer line before spending more GRPO on stopping rewards. | Strict stop-aware complete; minimal rejected |
+| Boundary SFT self-distillation | `configs/cloud_3b_boundary_sft_warmup.yaml` | `Qwen/Qwen2.5-3B-Instruct` + strict stop-aware pseudo-labels | Train EOS after the correct `####` boundary using base-model exact-correct completions instead of short gold rationales or sparse reward-only GRPO. | Ready to run |
 
 ## Current Read
 
@@ -46,6 +47,8 @@ Stop-aware postprocessing confirms this is primarily a termination problem. Trun
 The promoted A100 stop-aware eval confirms the oracle analysis. Strict stop-aware has zero exact wins and zero exact losses vs the original base eval: exact stays 91/128, strict final-line format improves by 57 examples, trailing text falls from 101/128 to 0/128, and average completion length falls from 845.41 to 515.46 chars. Minimal-final stop-aware is worse for this model: it gets 13 exact wins but 24 exact losses vs base, for 80/128 exact overall. The next baseline should use the strict prompt with stop-aware postprocessing; minimal-final should not be used for the next training branch.
 
 Phnixbox can run tiny 3B stop-aware evals on the RTX 4060, but only at the edge of VRAM with CPU offload. A 16-example strict-final stop-aware smoke took 4m12s and scored 6/16 exact, 8/16 strict final line, 0/16 trailing text. A 16-example minimal-final stop-aware smoke took 2m06s and scored 7/16 exact, 3/16 strict final line, 0/16 trailing text. Treat these as hardware/procedure checks, not promoted model results. The 4060 is fine for smoke tests; 128+ example 3B sweeps and training should still use rented GPU.
+
+The next training branch is boundary SFT self-distillation. It should generate 512 strict-prompt train-split completions with stop-aware postprocessing, keep only examples that are exact-correct and have a correct `####` marker, then SFT the model on those clipped model-native completions plus EOS. This directly trains the answer boundary while preserving the base model's own reasoning distribution. It avoids the previous rationale-SFT failure mode, where gold rationales compressed output length and cost exact accuracy, and it avoids more reward-only GRPO before the boundary is learnable.
 
 ## Base-Policy GRPO Success Criteria
 
@@ -125,6 +128,34 @@ uv run python -m rlvr_lab.eval_model \
 ```bash
 uv run python -m rlvr_lab.eval_model \
   --config configs/eval_cloud_3b_minimal_final_stopaware_128.yaml
+```
+
+Boundary SFT branch:
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_train512_strict_final_stopaware_pseudo.yaml
+```
+
+```bash
+uv run python -m rlvr_lab.build_boundary_sft_data \
+  outputs/evals/cloud_3b_train512_strict_final_stopaware_pseudo \
+  --output outputs/datasets/cloud_3b_boundary_sft_train512.jsonl
+```
+
+```bash
+uv run python -m rlvr_lab.train_format_sft \
+  --config configs/cloud_3b_boundary_sft_warmup.yaml
+```
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_strict_128.yaml
+```
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_strict_stopaware_128.yaml
 ```
 
 Required comparisons:

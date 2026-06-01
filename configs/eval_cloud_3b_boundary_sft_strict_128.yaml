@@ -1,0 +1,17 @@
+model_name_or_path: Qwen/Qwen2.5-3B-Instruct
+adapter_path: outputs/cloud_3b_boundary_sft_warmup
+model:
+  torch_dtype: bfloat16
+  device_map: auto
+dataset:
+  name: openai/gsm8k
+  config: main
+  split: test
+  limit: 128
+  prompt_style: strict_final_line
+generation:
+  batch_size: 4
+  max_prompt_length: 512
+  max_new_tokens: 256
+  do_sample: false
+output_dir: outputs/evals/cloud_3b_boundary_sft_strict_128

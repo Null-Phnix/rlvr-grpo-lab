@@ -144,11 +144,12 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config(args.config)
+    adapter_path = args.adapter_path or config.get("adapter_path")
     output_dir = args.output_dir or Path(config["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
     dataset = load_math_dataset(config["dataset"])
-    model, tokenizer = load_model_and_tokenizer(config, args.adapter_path)
+    model, tokenizer = load_model_and_tokenizer(config, adapter_path)
 
     generation_config = config.get("generation", {})
     batch_size = int(generation_config.get("batch_size", 1))
@@ -185,7 +186,7 @@ def main() -> None:
     summary.update(
         {
             "model_name_or_path": config["model_name_or_path"],
-            "adapter_path": args.adapter_path,
+            "adapter_path": adapter_path,
             "config_path": str(args.config),
             "output_dir": str(output_dir),
         }

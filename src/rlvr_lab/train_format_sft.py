@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import inspect
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -26,11 +27,23 @@ def format_gsm8k_rationale_completion(answer: str, eos_token: str | None) -> str
     return f"\n{answer.strip()}{eos}"
 
 
+def format_sample_completion(completion: str, eos_token: str | None) -> str:
+    eos = eos_token or ""
+    text = completion.strip()
+    if text and not text[0].isspace():
+        text = f"\n{text}"
+    if eos and not text.endswith(eos):
+        text = f"{text}{eos}"
+    return text
+
+
 def build_sft_completion(row: dict[str, Any], completion_style: str, eos_token: str | None) -> str:
     if completion_style == "final_only":
         return format_sft_completion(gsm8k_gold_answer(str(row["answer"])), eos_token)
     if completion_style == "gsm8k_rationale":
         return format_gsm8k_rationale_completion(str(row["answer"]), eos_token)
+    if completion_style == "sample_completion":
+        return format_sample_completion(str(row["completion"]), eos_token)
     raise ValueError(f"unknown completion_style: {completion_style}")
 
 
@@ -117,6 +130,23 @@ def tokenize_prompt_completion(
     }
 
 
+def load_sample_completion_rows(path: Path, limit: int | None = None) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            prompt = str(record.get("prompt", ""))
+            completion = str(record.get("completion", ""))
+            if not prompt.strip() or not completion.strip():
+                continue
+            rows.append({"prompt": prompt, "completion": completion})
+            if limit is not None and len(rows) >= limit:
+                break
+    return rows
+
+
 def load_format_sft_dataset(config: dict[str, Any], tokenizer):
     try:
         from datasets import Dataset, load_dataset
@@ -150,6 +180,41 @@ def load_format_sft_dataset(config: dict[str, Any], tokenizer):
         )
 
     return Dataset.from_list(rows)
+
+
+def load_boundary_sft_dataset(config: dict[str, Any], tokenizer):
+    try:
+        from datasets import Dataset
+    except ImportError as exc:  # pragma: no cover - train extra only
+        raise RuntimeError("Install training dependencies with `uv sync --extra train`.") from exc
+
+    dataset_config = config["dataset"]
+    path = Path(str(dataset_config["path"]))
+    limit = dataset_config.get("limit")
+    max_seq_length = int(config.get("training", {}).get("max_seq_length", 512))
+    rows = []
+    for row in load_sample_completion_rows(
+        path,
+        limit=int(limit) if limit else None,
+    ):
+        completion = build_sft_completion(row, "sample_completion", tokenizer.eos_token)
+        rows.append(
+            tokenize_prompt_completion(
+                tokenizer=tokenizer,
+                prompt=row["prompt"],
+                completion=completion,
+                max_seq_length=max_seq_length,
+            )
+        )
+
+    return Dataset.from_list(rows)
+
+
+def load_sft_dataset(config: dict[str, Any], tokenizer):
+    dataset_config = config["dataset"]
+    if dataset_config.get("source") == "samples_jsonl":
+        return load_boundary_sft_dataset(config, tokenizer)
+    return load_format_sft_dataset(config, tokenizer)
 
 
 @dataclass
@@ -211,7 +276,7 @@ def main() -> None:
     if bool(config.get("training", {}).get("gradient_checkpointing", True)):
         model.config.use_cache = False
 
-    train_dataset = load_format_sft_dataset(config, tokenizer)
+    train_dataset = load_sft_dataset(config, tokenizer)
     trainer = Trainer(
         model=model,
         args=build_training_args(config),

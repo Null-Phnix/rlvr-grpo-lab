@@ -95,6 +95,46 @@ Stop-aware eval configs:
   --config configs/eval_cloud_3b_minimal_final_stopaware_128.yaml
 ```
 
+## Next Training Branch: Boundary SFT
+
+The next training branch is not another reward-only GRPO run. It uses strict-prompt base-model completions as self-distillation data, keeps only exact-correct examples with a correct `####` marker, truncates each completion at that marker, and trains the adapter to emit EOS immediately after the boundary.
+
+Generate pseudo-labels on a rented GPU:
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_train512_strict_final_stopaware_pseudo.yaml
+```
+
+Build the boundary SFT dataset:
+
+```bash
+uv run python -m rlvr_lab.build_boundary_sft_data \
+  outputs/evals/cloud_3b_train512_strict_final_stopaware_pseudo \
+  --output outputs/datasets/cloud_3b_boundary_sft_train512.jsonl
+```
+
+Train the boundary adapter:
+
+```bash
+uv run python -m rlvr_lab.train_format_sft \
+  --config configs/cloud_3b_boundary_sft_warmup.yaml
+```
+
+Evaluate both raw stopping and stop-aware exactness:
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_strict_128.yaml
+```
+
+```bash
+uv run python -m rlvr_lab.eval_model \
+  --config configs/eval_cloud_3b_boundary_sft_strict_stopaware_128.yaml
+```
+
+Success means raw strict eval improves trailing text and final-line format while stop-aware eval stays near the base `91/128` exact score. If stop-aware exact drops materially, the SFT adapter damaged reasoning and should not become the GRPO starting point.
+
 ## Hardware Plan
 
 - MacBook: editing, docs, reward/eval development
