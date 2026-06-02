@@ -9,6 +9,7 @@ FINAL_LINE_RE = re.compile(r"^####\s*([-+]?(?:\d[\d,]*)(?:\.\d+)?)\s*$")
 BOXED_RE = re.compile(r"\\boxed\{([^{}]+)\}")
 NUMBER_RE = re.compile(r"[-+]?(?:\d[\d,]*)(?:\.\d+)?")
 ROLE_LABEL_RE = re.compile(r"\b(?:Human|Assistant|User|System)\s*:")
+NUMERIC_MATCH_TOLERANCE = Decimal("1e-9")
 
 
 def completion_text(completion: Any) -> str:
@@ -33,10 +34,41 @@ def normalize_answer(value: str | None) -> str | None:
         number = Decimal(cleaned)
     except InvalidOperation:
         return cleaned.lower()
+    nearest_integer = number.to_integral_value()
+    if abs(number - nearest_integer) <= NUMERIC_MATCH_TOLERANCE:
+        number = nearest_integer
     normalized = format(number.normalize(), "f")
     if "." in normalized:
         normalized = normalized.rstrip("0").rstrip(".")
     return normalized
+
+
+def decimal_answer(value: str | None) -> Decimal | None:
+    if value is None:
+        return None
+    cleaned = value.strip().replace(",", "")
+    cleaned = cleaned.strip("$% ")
+    if not cleaned:
+        return None
+    try:
+        return Decimal(cleaned)
+    except InvalidOperation:
+        return None
+
+
+def answers_match(predicted: str | None, expected: str | None) -> bool:
+    predicted_decimal = decimal_answer(predicted)
+    expected_decimal = decimal_answer(expected)
+    if predicted_decimal is not None and expected_decimal is not None:
+        return abs(predicted_decimal - expected_decimal) <= NUMERIC_MATCH_TOLERANCE
+
+    normalized_predicted = normalize_answer(predicted)
+    normalized_expected = normalize_answer(expected)
+    return (
+        normalized_predicted is not None
+        and normalized_expected is not None
+        and normalized_predicted == normalized_expected
+    )
 
 
 def extract_answer(text: str) -> str | None:
@@ -93,10 +125,9 @@ def math_correctness_reward(
     rewards = []
     extracted = []
     for completion, gold in zip(completions, ground_truth, strict=False):
-        predicted = normalize_answer(extract_answer(completion_text(completion)))
-        expected = normalize_answer(gold)
-        extracted.append(predicted or "[none]")
-        rewards.append(1.0 if predicted is not None and predicted == expected else 0.0)
+        predicted = extract_answer(completion_text(completion))
+        extracted.append(normalize_answer(predicted) or "[none]")
+        rewards.append(1.0 if answers_match(predicted, gold) else 0.0)
 
     log_extra = kwargs.get("log_extra")
     if log_extra:
@@ -118,10 +149,9 @@ def final_line_correctness_reward(
     rewards = []
     extracted = []
     for completion, gold in zip(completions, ground_truth, strict=False):
-        predicted = normalize_answer(extract_final_line_answer(completion_text(completion)))
-        expected = normalize_answer(gold)
-        extracted.append(predicted or "[none]")
-        rewards.append(1.0 if predicted is not None and predicted == expected else 0.0)
+        predicted = extract_final_line_answer(completion_text(completion))
+        extracted.append(normalize_answer(predicted) or "[none]")
+        rewards.append(1.0 if answers_match(predicted, gold) else 0.0)
 
     log_extra = kwargs.get("log_extra")
     if log_extra:
@@ -142,10 +172,9 @@ def answer_marker_correctness_reward(
     rewards = []
     extracted = []
     for completion, gold in zip(completions, ground_truth, strict=False):
-        predicted = normalize_answer(extract_marked_answer(completion_text(completion)))
-        expected = normalize_answer(gold)
-        extracted.append(predicted or "[none]")
-        rewards.append(1.0 if predicted is not None and predicted == expected else 0.0)
+        predicted = extract_marked_answer(completion_text(completion))
+        extracted.append(normalize_answer(predicted) or "[none]")
+        rewards.append(1.0 if answers_match(predicted, gold) else 0.0)
 
     log_extra = kwargs.get("log_extra")
     if log_extra:
@@ -171,10 +200,9 @@ def answer_contract_progress_reward(
 
     for completion, gold in zip(completions, ground_truth, strict=False):
         text = completion_text(completion)
-        marked_answer = normalize_answer(extract_marked_answer(text))
-        expected = normalize_answer(gold)
+        marked_answer = extract_marked_answer(text)
         has_marker = marked_answer is not None
-        marker_correct = has_marker and expected is not None and marked_answer == expected
+        marker_correct = has_marker and answers_match(marked_answer, gold)
         clean_stop = has_marker and not has_text_after_final_marker(text)
         role_leak = has_role_label(text)
 

@@ -12,8 +12,8 @@ from rich.table import Table
 from rlvr_lab.postprocess import postprocess_completion
 from rlvr_lab.rewards import (
     FINAL_RE,
+    answers_match,
     extract_marked_answer,
-    normalize_answer,
 )
 
 DEFAULT_BOUNDARY_CONFIG = {
@@ -41,9 +41,8 @@ def load_samples(path: Path) -> list[dict[str, Any]]:
 
 
 def marked_answer_is_correct(record: Mapping[str, Any]) -> bool:
-    predicted = normalize_answer(extract_marked_answer(str(record.get("completion", ""))))
-    expected = normalize_answer(str(record.get("ground_truth", "")))
-    return predicted is not None and expected is not None and predicted == expected
+    predicted = extract_marked_answer(str(record.get("completion", "")))
+    return answers_match(predicted, str(record.get("ground_truth", "")))
 
 
 def force_final_marker_line(text: str) -> str:

@@ -13,10 +13,10 @@ from rlvr_lab.eval_metrics import score_completion, summarize_records
 from rlvr_lab.postprocess import postprocess_completion
 from rlvr_lab.rewards import (
     FINAL_RE,
+    answers_match,
     extract_marked_answer,
     has_role_label,
     has_text_after_final_marker,
-    normalize_answer,
 )
 
 DEFAULT_STOPAWARE_CONFIG = {
@@ -100,11 +100,8 @@ def analyze_records(
 
     for original, stopaware in zip(original_records, stopaware_records, strict=True):
         completion = str(original.get("completion", ""))
-        marked_answer = normalize_answer(extract_marked_answer(completion))
-        expected = normalize_answer(str(original.get("ground_truth", "")))
-        marked_correct = (
-            marked_answer is not None and expected is not None and marked_answer == expected
-        )
+        marked_answer = extract_marked_answer(completion)
+        marked_correct = answers_match(marked_answer, str(original.get("ground_truth", "")))
 
         marked_count += int(marked_answer is not None)
         marked_correct_count += int(marked_correct)

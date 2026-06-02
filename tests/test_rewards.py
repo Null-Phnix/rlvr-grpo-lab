@@ -1,6 +1,7 @@
 from rlvr_lab.rewards import (
     answer_contract_progress_reward,
     answer_marker_correctness_reward,
+    answers_match,
     conversation_leak_penalty,
     extract_answer,
     extract_final_line_answer,
@@ -31,6 +32,14 @@ def test_extract_marked_answer_only_reads_hash_marker() -> None:
 
 def test_normalize_numeric_answer() -> None:
     assert normalize_answer("1,200.00") == "1200"
+    assert normalize_answer("5.000000000000001") == "5"
+
+
+def test_answers_match_accepts_tiny_numeric_noise_only() -> None:
+    assert answers_match("5.000000000000001", "5") is True
+    assert answers_match("37.500000000000001", "37.5") is True
+    assert answers_match("5.0001", "5") is False
+    assert answers_match("forty two", "forty two") is True
 
 
 def test_math_correctness_reward() -> None:

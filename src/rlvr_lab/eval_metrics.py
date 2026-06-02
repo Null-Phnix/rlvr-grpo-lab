@@ -5,6 +5,7 @@ from typing import Any
 
 from rlvr_lab.rewards import (
     FINAL_RE,
+    answers_match,
     extract_answer,
     extract_final_line_answer,
     has_text_after_final_marker,
@@ -24,11 +25,7 @@ def score_completion(
     normalized_answer = normalize_answer(extracted)
     normalized_final_line_answer = normalize_answer(final_line_answer)
     normalized_ground_truth = normalize_answer(ground_truth)
-    exact_correct = (
-        normalized_answer is not None
-        and normalized_ground_truth is not None
-        and normalized_answer == normalized_ground_truth
-    )
+    exact_correct = answers_match(extracted, ground_truth)
 
     return {
         "index": index,

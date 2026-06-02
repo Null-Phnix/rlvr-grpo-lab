@@ -33,6 +33,18 @@ def test_score_completion_handles_missing_answer() -> None:
     assert record["extracted_answer"] is None
 
 
+def test_score_completion_accepts_tiny_numeric_noise() -> None:
+    record = score_completion(
+        prompt="How long?",
+        completion="30 / 6 = 5.000000000000001\n#### 5.000000000000001",
+        ground_truth="5",
+        index=0,
+    )
+
+    assert record["exact_correct"] is True
+    assert record["normalized_answer"] == "5"
+
+
 def test_summarize_records() -> None:
     records = [
         {

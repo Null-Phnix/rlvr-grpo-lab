@@ -90,8 +90,25 @@ Result:
 - source-final-line dataset: `1895/2048` selected
 - 7B source-final-line adapter 128 gate: `109/128` exact, `127/128` strict final line, `0/128` trailing
 - sample comparison vs base: 2 exact wins, 7 exact losses
+- tolerant numeric rescore: adapter moves to `110/128`, still below the base `114/128`
 
 Conclusion: rejected. The 7B base model already follows the answer contract well, so this SFT branch mostly adds reasoning drift for only two additional strict-final-line cases.
+
+## Next Phase: 7B Base 512/Full Eval
+
+The next GPU work is a stronger no-adapter 7B baseline, not more boundary SFT:
+
+```bash
+bash scripts/run_gpu_7b_base_eval.sh
+```
+
+If the 512 run is healthy and the pod budget is acceptable, run the full GSM8K test split:
+
+```bash
+bash scripts/run_gpu_7b_base_eval.sh --full
+```
+
+These use the strict prompt, 384-token generation budget, and stop-aware postprocessing. Use the tolerant numeric scorer from `rlvr_lab.rewards.answers_match`.
 
 ## 7B Commands For Reproduction
 
