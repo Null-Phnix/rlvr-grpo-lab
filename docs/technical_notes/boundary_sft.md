@@ -82,12 +82,14 @@ The source-final-line recipe was ported to `Qwen/Qwen2.5-7B-Instruct`:
 
 This branch is rejected. The 7B base model already has strong answer-boundary behavior, so applying the same boundary-SFT pressure that helped 3B caused exact-accuracy drift for little format benefit.
 
-## Next Experiment
+## Current 7B Follow-Up
 
-Do not continue boundary SFT on 7B unless the target is changed. The next useful 7B work is one of:
+The immediate 7B follow-ups are complete:
 
-1. Improve numeric normalization for near-equivalent answers such as `5.000000000000001` vs `5`, then rescore affected sample files.
-2. Run 7B base 512/full eval to establish a stronger no-adapter baseline.
-3. Test a much smaller/regularized adapter only if it has a target beyond final-line cleanup.
+- tolerant numeric normalization was added and used to rescore the relevant 7B artifacts
+- the rejected 7B adapter remains below the base model after rescore
+- the 7B base model was evaluated on both a 512-example check and the full GSM8K test split
+
+The full 7B base eval scored `1164/1319` exact, `1296/1319` strict final line, and `0/1319` trailing text. On that run, most remaining failures still obeyed the answer contract. The next useful work is broader benchmark coverage or failure taxonomy, not more boundary-SFT pressure.
 
 Do not continue cleanup-GRPO reward pressure unless the explicit goal is to trade exact accuracy for slightly cleaner final-line formatting.

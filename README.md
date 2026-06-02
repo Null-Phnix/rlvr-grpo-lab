@@ -4,6 +4,18 @@ Config-driven RLVR/GRPO post-training experiments for reasoning models, with ver
 
 This is not presented as a DeepSeek-R1 reproduction. The goal is narrower and more useful: build an inspectable training/eval harness, run cheap local smoke tests, then scale the same workflow to rented GPUs for 3B/7B experiments.
 
+## Project Status
+
+**v1 research run is complete.** The core training/eval loop, promoted 3B branch, rejected 7B adapter branch, and full 7B no-adapter reference are all recorded with local artifacts and committed evidence.
+
+The strongest read is:
+
+- 3B needed answer-boundary self-distillation. The promoted source-final-line boundary SFT branch scored `429/512` exact, `361/512` strict final line, and `0/512` trailing text.
+- 7B did not need boundary SFT. The base model scored `1164/1319` exact, `1296/1319` strict final line, and `0/1319` trailing text on the full GSM8K test split.
+- The remaining 7B errors are mostly math/reasoning errors, not answer-boundary errors.
+
+Portfolio report: [`docs/reports/rlvr_grpo_lab_v1_report.md`](docs/reports/rlvr_grpo_lab_v1_report.md)
+
 ## Current Promoted Baseline
 
 **Boundary SFT v4 source-final-line + strict stop-aware 384-token eval** is the current promoted baseline.
@@ -14,7 +26,7 @@ This is not presented as a DeepSeek-R1 reproduction. The goal is narrower and mo
 - Public evidence: [`docs/results/boundary_sft_v4_source_finalline_384_stopaware/summary_512.json`](docs/results/boundary_sft_v4_source_finalline_384_stopaware/summary_512.json)
 - Reason: it matches the previous 128-example exact score, improves the 512-example exact score by 2 answers, and substantially improves strict final-line format without reintroducing trailing text.
 
-Do not scale `configs/cloud_7b_grpo.yaml` as the next 7B experiment. It is a legacy GRPO config that does not reflect the current boundary-SFT lesson. The next rented-GPU work should port the source-final-line boundary-SFT recipe to 7B, not the older unfiltered v2 scale-up.
+Do not scale `configs/cloud_7b_grpo.yaml` or rerun boundary SFT on 7B as the next experiment. The 7B transfer test is complete and rejected; the next useful work is failure analysis or broader benchmark coverage, not more answer-boundary pressure.
 
 ## What This Repo Contains
 
@@ -60,6 +72,7 @@ On the 512-example held-out check, the previous boundary-SFT baseline scored `42
 Detailed records:
 
 - [Experiment ledger](docs/runs/experiment_ledger.md)
+- [v1 project report](docs/reports/rlvr_grpo_lab_v1_report.md)
 - [Promoted result evidence](docs/results/README.md)
 - [Boundary SFT technical note](docs/technical_notes/boundary_sft.md)
 - [Next GPU runbook](docs/runbooks/next_gpu_runs.md)
