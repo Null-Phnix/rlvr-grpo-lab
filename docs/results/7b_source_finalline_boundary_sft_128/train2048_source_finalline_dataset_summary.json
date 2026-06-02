@@ -1,0 +1,13 @@
+{
+  "avg_completion_chars": 415.8812664907652,
+  "force_marker_line": false,
+  "input_count": 2048,
+  "require_exact": true,
+  "require_marked_correct": true,
+  "require_source_final_line": true,
+  "selected_count": 1895,
+  "skipped_empty": 0,
+  "skipped_marker_wrong": 0,
+  "skipped_not_exact": 130,
+  "skipped_not_final_line": 23
+}

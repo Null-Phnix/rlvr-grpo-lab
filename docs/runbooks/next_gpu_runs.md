@@ -73,9 +73,27 @@ uv run python -m rlvr_lab.train_format_sft \
   --config configs/cloud_3b_boundary_sft_v4_source_finalline.yaml
 ```
 
-## Next Phase: 7B Source-Final-Line Boundary SFT
+## Completed 7B Source-Final-Line Boundary SFT
 
 Do not use `configs/cloud_7b_grpo.yaml` as the next 7B experiment. Do not port the rejected unfiltered 3B v2 recipe directly.
+
+The guarded 7B source-final-line script was run without `--eval-512`:
+
+```bash
+bash scripts/run_gpu_7b_boundary_sft_v2_source_finalline.sh --approved-after-3b-v4
+```
+
+Result:
+
+- 7B base 128 gate: `114/128` exact, `125/128` strict final line, `0/128` trailing
+- 7B train pseudo-label pass: `1918/2048` exact, `2012/2048` strict final line, `0/2048` trailing
+- source-final-line dataset: `1895/2048` selected
+- 7B source-final-line adapter 128 gate: `109/128` exact, `127/128` strict final line, `0/128` trailing
+- sample comparison vs base: 2 exact wins, 7 exact losses
+
+Conclusion: rejected. The 7B base model already follows the answer contract well, so this SFT branch mostly adds reasoning drift for only two additional strict-final-line cases.
+
+## 7B Commands For Reproduction
 
 Run the 7B base 128-example comparison baseline first:
 
@@ -131,7 +149,7 @@ Or run the guarded end-to-end script:
 bash scripts/run_gpu_7b_boundary_sft_v2_source_finalline.sh --approved-after-3b-v4
 ```
 
-Only add `--eval-512` after the 128-example gate is worth promoting. With this flag, the script runs both the 7B base 512 eval and the adapter 512 eval, then writes the base-vs-adapter comparison:
+Do not add `--eval-512` for the rejected adapter unless there is a diagnostic reason. With this flag, the script runs both the 7B base 512 eval and the adapter 512 eval, then writes the base-vs-adapter comparison:
 
 ```bash
 bash scripts/run_gpu_7b_boundary_sft_v2_source_finalline.sh --approved-after-3b-v4 --eval-512

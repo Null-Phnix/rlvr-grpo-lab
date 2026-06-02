@@ -71,14 +71,23 @@ The v4 source-final-line branch kept only pseudo-labels that naturally satisfied
 
 Compared with the previous boundary-SFT 512 check, v4 is `+2` exact and `+104` strict final-line cases. The exact delta is small, so treat v4 as a contract-cleanliness improvement with no observed exact regression, not as a large accuracy gain.
 
+## 7B Transfer Test
+
+The source-final-line recipe was ported to `Qwen/Qwen2.5-7B-Instruct`:
+
+- base 7B 128 gate: `114/128` exact, `125/128` strict final line, `0/128` trailing
+- 2048 pseudo-label pass: `1918/2048` exact, `2012/2048` strict final line, `0/2048` trailing
+- source-final-line dataset: `1895/2048` selected
+- adapter 128 gate: `109/128` exact, `127/128` strict final line, `0/128` trailing
+
+This branch is rejected. The 7B base model already has strong answer-boundary behavior, so applying the same boundary-SFT pressure that helped 3B caused exact-accuracy drift for little format benefit.
+
 ## Next Experiment
 
-Port the v4 source-final-line recipe to 7B before revisiting GRPO:
+Do not continue boundary SFT on 7B unless the target is changed. The next useful 7B work is one of:
 
-1. Generate 2048 7B train-split pseudo-labels with strict prompt and stop-aware postprocessing.
-2. Build the dataset with `rlvr_lab.build_boundary_sft_data --require-source-final-line`.
-3. Train a 7B boundary-SFT adapter.
-4. Gate it on a 128-example strict stop-aware 384-token eval.
-5. Run the 512-example check only if the 128 gate matches or beats the current 3B v4 read.
+1. Improve numeric normalization for near-equivalent answers such as `5.000000000000001` vs `5`, then rescore affected sample files.
+2. Run 7B base 512/full eval to establish a stronger no-adapter baseline.
+3. Test a much smaller/regularized adapter only if it has a target beyond final-line cleanup.
 
 Do not continue cleanup-GRPO reward pressure unless the explicit goal is to trade exact accuracy for slightly cleaner final-line formatting.

@@ -65,6 +65,18 @@ Detailed records:
 - [Next GPU runbook](docs/runbooks/next_gpu_runs.md)
 - [RunPod A100 3B pilot notes](docs/runs/runpod_a100_3b_pilot.md)
 
+## 7B Source-Final-Line Result
+
+The 3B source-final-line recipe did not transfer cleanly to `Qwen/Qwen2.5-7B-Instruct`.
+
+| Run | Exact | Strict Final Line | Trailing Text | Avg Chars | Read |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 7B base strict stop-aware 384-token eval | 114/128 | 125/128 | 0/128 | 450.89 | Strong base model; already follows the answer contract. |
+| 7B source-final-line pseudo-label pass | 1918/2048 | 2012/2048 | 0/2048 | 426.56 | Very clean pseudo-label source; filter kept 1895 examples. |
+| 7B source-final-line SFT 128 gate | 109/128 | 127/128 | 0/128 | 418.04 | Rejected: only +2 final-line cases, but -5 exact answers vs base. |
+
+Sample comparison shows 2 exact wins and 7 exact losses vs the 7B base model. One loss is a numeric-normalization edge case (`5.000000000000001` vs `5`), but even crediting it manually leaves the adapter behind the base model. The current read is that 7B already has the boundary behavior that 3B needed SFT to learn, so the same SFT pressure mostly causes reasoning drift.
+
 ## Latest Base-Policy Experiment
 
 Run config:

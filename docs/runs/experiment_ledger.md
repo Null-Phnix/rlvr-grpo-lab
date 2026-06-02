@@ -51,6 +51,14 @@ These runs test whether the 256-token eval budget clipped correct completions.
 | Boundary SFT v1 384 stop-aware 512 eval | `configs/eval_cloud_3b_boundary_sft_strict_stopaware_384_512.yaml` | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_512` | 427/512 | 257/512 | 0/512 | 483.66 | Larger check for the previous promoted 3B baseline. |
 | Boundary SFT v4 source-final-line 384 stop-aware 512 eval | `configs/eval_cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512.yaml` | `outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512` | 429/512 | 361/512 | 0/512 | 539.36 | Promoted: no observed exact loss and +104 strict-final-line cases vs v1 on the 512-example check. |
 
+## Cloud 7B Source-Final-Line Transfer
+
+| Run | Eval Config | Eval Output | Exact | Strict Final Line | Trailing Text | Avg Chars | Conclusion |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| 7B base 384 stop-aware 128 eval | `configs/eval_cloud_7b_strict_stopaware_384_128.yaml` | `outputs/evals/cloud_7b_strict_stopaware_384_128` | 114/128 | 125/128 | 0/128 | 450.89 | Strong baseline; 7B already has clean answer-boundary behavior. |
+| 7B source-final-line train pseudo-label pass | `configs/eval_cloud_7b_train2048_strict_final_stopaware_pseudo.yaml` | `outputs/evals/cloud_7b_train2048_strict_final_stopaware_pseudo` | 1918/2048 | 2012/2048 | 0/2048 | 426.56 | Clean pseudo-label source; source-final-line filter kept 1895 examples. |
+| 7B source-final-line boundary SFT 128 eval | `configs/eval_cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128.yaml` | `outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128` | 109/128 | 127/128 | 0/128 | 418.04 | Rejected: +2 strict-final-line cases but -5 exact answers vs 7B base. |
+
 ## Candidate Next Runs
 
 | Run | Config | Starting Point | Purpose | Run Status |
@@ -64,7 +72,7 @@ These runs test whether the 256-token eval budget clipped correct completions.
 | Boundary SFT v2 | `configs/cloud_3b_boundary_sft_v2.yaml` | `Qwen/Qwen2.5-3B-Instruct` + 2048 strict stop-aware pseudo-labels | Scale the successful boundary-SFT recipe before any 7B work. | Rejected at step 100 and step 200 |
 | Boundary SFT v3 marker-line | `configs/cloud_3b_boundary_sft_v3_markerline.yaml` | `Qwen/Qwen2.5-3B-Instruct` + 2048 exact marked pseudo-labels with forced marker line | Test whether target-shape normalization fixes final-line format. | Rejected as exact/format tradeoff |
 | Boundary SFT v4 source-final-line | `configs/cloud_3b_boundary_sft_v4_source_finalline.yaml` | `Qwen/Qwen2.5-3B-Instruct` + 2048 pseudo-labels filtered to natural final-line targets | Preserve exact while improving final-line format. | Promoted |
-| 7B source-final-line boundary SFT | TBD | `Qwen/Qwen2.5-7B-Instruct` + source-final-line pseudo-label filter | Port the v4 lesson to 7B after the 3B v4 result. | Next GPU branch |
+| 7B source-final-line boundary SFT | `configs/cloud_7b_boundary_sft_v2_source_finalline.yaml` | `Qwen/Qwen2.5-7B-Instruct` + source-final-line pseudo-label filter | Port the v4 lesson to 7B after the 3B v4 result. | Rejected at 128 gate |
 
 ## Current Read
 
@@ -90,7 +98,7 @@ The 384-token sensitivity eval changed the model-selection conclusion. The 256-t
 
 The 2048-example scale-up separated useful data filtering from harmful target drift. The unfiltered v2 dataset selected 1657 exact marked-answer examples, but the resulting adapter lost exact accuracy: 105/128 at step 100 and 101/128 at step 200. V3 forced every selected answer marker onto its own line and reached 100/128 strict final line, but exact fell to 104/128. V4 instead kept only source completions that naturally had the answer marker as the final line, selecting 932 examples. That preserved the 107/128 exact gate, improved final-line format to 86/128, and then scored 429/512 exact with 361/512 strict final-line cases on the larger held-out check. The current promoted 3B branch is therefore source-final-line boundary SFT.
 
-The next pod sequence is documented in `docs/runbooks/next_gpu_runs.md`. The next 7B run should port the v4 source-final-line filter, not the older unfiltered v2 recipe.
+The 7B transfer test rejected a simple port of the 3B v4 recipe. The 7B base model scored 114/128 exact and 125/128 strict final line under the same strict stop-aware 384-token gate, so the answer-boundary problem was already mostly solved. Source-final-line SFT selected 1895 clean pseudo-labels and made the answer contract slightly cleaner, but exact fell to 109/128. The next 7B branch should not apply more boundary SFT pressure. Useful next work is either metric cleanup for numeric near-equality, direct 7B base 512/full evaluation, or a much smaller regularized adapter run only if there is a clear target beyond final-line cleanup.
 
 ## Base-Policy GRPO Success Criteria
 
