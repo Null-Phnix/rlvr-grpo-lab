@@ -1,0 +1,83 @@
+{
+  "baseline_path": "outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_512/samples.jsonl",
+  "candidate_path": "outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512/samples.jsonl",
+  "compared_examples": 512,
+  "iterations": 20000,
+  "metrics": {
+    "exact": {
+      "baseline_count": 427,
+      "baseline_rate": 0.833984375,
+      "bootstrap_ci95_delta_count": [
+        -11.0,
+        15.0
+      ],
+      "bootstrap_ci95_delta_rate": [
+        -0.021484375,
+        0.029296875
+      ],
+      "candidate_count": 429,
+      "candidate_rate": 0.837890625,
+      "delta_count": 2,
+      "delta_rate": 0.00390625,
+      "losses": 22,
+      "wins": 24
+    },
+    "final_format": {
+      "baseline_count": 483,
+      "baseline_rate": 0.943359375,
+      "bootstrap_ci95_delta_count": [
+        -23.0,
+        2.0
+      ],
+      "bootstrap_ci95_delta_rate": [
+        -0.044921875,
+        0.00390625
+      ],
+      "candidate_count": 473,
+      "candidate_rate": 0.923828125,
+      "delta_count": -10,
+      "delta_rate": -0.01953125,
+      "losses": 25,
+      "wins": 15
+    },
+    "final_line": {
+      "baseline_count": 257,
+      "baseline_rate": 0.501953125,
+      "bootstrap_ci95_delta_count": [
+        81.0,
+        127.0
+      ],
+      "bootstrap_ci95_delta_rate": [
+        0.158203125,
+        0.248046875
+      ],
+      "candidate_count": 361,
+      "candidate_rate": 0.705078125,
+      "delta_count": 104,
+      "delta_rate": 0.203125,
+      "losses": 27,
+      "wins": 131
+    },
+    "trailing_text": {
+      "baseline_count": 0,
+      "baseline_rate": 0.0,
+      "bootstrap_ci95_delta_count": [
+        0.0,
+        0.0
+      ],
+      "bootstrap_ci95_delta_rate": [
+        0.0,
+        0.0
+      ],
+      "candidate_count": 0,
+      "candidate_rate": 0.0,
+      "delta_count": 0,
+      "delta_rate": 0.0,
+      "losses": 0,
+      "wins": 0
+    }
+  },
+  "missing_from_baseline": [],
+  "missing_from_candidate": [],
+  "seed": 31
+}

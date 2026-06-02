@@ -1,0 +1,83 @@
+{
+  "baseline_path": "outputs/evals/cloud_7b_strict_stopaware_384_128_rescore_tol1e9/samples.jsonl",
+  "candidate_path": "outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128_rescore_tol1e9/samples.jsonl",
+  "compared_examples": 128,
+  "iterations": 20000,
+  "metrics": {
+    "exact": {
+      "baseline_count": 114,
+      "baseline_rate": 0.890625,
+      "bootstrap_ci95_delta_count": [
+        -10.0,
+        1.0
+      ],
+      "bootstrap_ci95_delta_rate": [
+        -0.078125,
+        0.0078125
+      ],
+      "candidate_count": 110,
+      "candidate_rate": 0.859375,
+      "delta_count": -4,
+      "delta_rate": -0.03125,
+      "losses": 6,
+      "wins": 2
+    },
+    "final_format": {
+      "baseline_count": 127,
+      "baseline_rate": 0.9921875,
+      "bootstrap_ci95_delta_count": [
+        0.0,
+        3.0
+      ],
+      "bootstrap_ci95_delta_rate": [
+        0.0,
+        0.0234375
+      ],
+      "candidate_count": 128,
+      "candidate_rate": 1.0,
+      "delta_count": 1,
+      "delta_rate": 0.0078125,
+      "losses": 0,
+      "wins": 1
+    },
+    "final_line": {
+      "baseline_count": 125,
+      "baseline_rate": 0.9765625,
+      "bootstrap_ci95_delta_count": [
+        -2.0,
+        6.0
+      ],
+      "bootstrap_ci95_delta_rate": [
+        -0.015625,
+        0.046875
+      ],
+      "candidate_count": 127,
+      "candidate_rate": 0.9921875,
+      "delta_count": 2,
+      "delta_rate": 0.015625,
+      "losses": 1,
+      "wins": 3
+    },
+    "trailing_text": {
+      "baseline_count": 0,
+      "baseline_rate": 0.0,
+      "bootstrap_ci95_delta_count": [
+        0.0,
+        0.0
+      ],
+      "bootstrap_ci95_delta_rate": [
+        0.0,
+        0.0
+      ],
+      "candidate_count": 0,
+      "candidate_rate": 0.0,
+      "delta_count": 0,
+      "delta_rate": 0.0,
+      "losses": 0,
+      "wins": 0
+    }
+  },
+  "missing_from_baseline": [],
+  "missing_from_candidate": [],
+  "seed": 37
+}

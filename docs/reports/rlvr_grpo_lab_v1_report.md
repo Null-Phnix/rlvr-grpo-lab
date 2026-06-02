@@ -1,6 +1,6 @@
 # RLVR GRPO Lab v1 Report
 
-Status: v1 research run complete. The remaining work is presentation polish, broader eval coverage, and deeper failure taxonomy.
+Status: v1 research run complete. The remaining work is presentation polish, broader eval coverage, and representative sample review.
 
 ## Summary
 
@@ -80,7 +80,20 @@ The 7B base model already scored `125/128` strict final-line on the first gate. 
 
 6. Remaining 7B errors are mostly math errors, not boundary errors.
 
-On the full 7B base eval, `155/1319` examples were exact-wrong. Of those, `151` still had an answer marker and `149` still had the final answer as the final line. Only `5` examples lacked a marker, and there were `0` trailing-text cases. The remaining gap is therefore not mainly a final-answer-contract problem.
+On the full 7B base eval, `155/1319` examples were exact-wrong. The failure taxonomy puts `149/155` wrong examples in `wrong_math_clean_contract`: they had a final-line answer and no trailing text, but the answer was wrong. Only `6/155` wrong examples were boundary/extraction cases. The remaining gap is therefore not mainly a final-answer-contract problem.
+
+7. Bootstrap checks support conservative claims.
+
+Paired bootstrap checks were added for the decision-critical comparisons:
+
+| Comparison | Metric | Delta | 95% Bootstrap CI |
+| --- | --- | ---: | ---: |
+| 3B v4 source-final-line vs 3B v1 boundary SFT, 512 examples | exact | +2/512 | [-11, +15] |
+| 3B v4 source-final-line vs 3B v1 boundary SFT, 512 examples | strict final line | +104/512 | [+81, +127] |
+| 7B source-final-line SFT vs 7B base, 128 examples after tolerant rescore | exact | -4/128 | [-10, +1] |
+| 7B source-final-line SFT vs 7B base, 128 examples after tolerant rescore | strict final line | +2/128 | [-2, +6] |
+
+This is why the 3B v4 result is framed as a strong formatting improvement with no observed exact regression, not as an accuracy breakthrough. It is also why the 7B adapter stays rejected: its exact delta is negative and its format gain is small.
 
 ## What Failed
 
@@ -132,6 +145,9 @@ Relevant evidence:
 - `docs/results/7b_source_finalline_boundary_sft_128/`
 - `docs/results/7b_base_strict_stopaware_384/`
 - `docs/runs/experiment_ledger.md`
+- `docs/results/boundary_sft_v4_source_finalline_384_stopaware/bootstrap_vs_boundary_sft_v1_512.json`
+- `docs/results/7b_source_finalline_boundary_sft_128/bootstrap_adapter_vs_base_rescore_tol1e9.json`
+- `docs/results/7b_base_strict_stopaware_384/failure_taxonomy_full.json`
 
 ## Limitations
 
@@ -141,9 +157,8 @@ The 3B v4 result is best framed as answer-contract improvement with no observed 
 
 ## Next Work
 
-The next work should be packaging and analysis, not another blind training run:
+The next work should be broader evaluation and release polish, not another blind training run:
 
-1. Add a compact failure taxonomy for the full 7B eval.
-2. Add confidence intervals or bootstrap deltas for small exact-score comparisons.
-3. Evaluate the final 3B and 7B policies on at least one non-GSM8K benchmark.
-4. Tag a v0.1 release once the README/report are final.
+1. Evaluate the final 3B and 7B policies on at least one non-GSM8K benchmark.
+2. Add a small, human-readable gallery of representative wins/losses.
+3. Tag a v0.1 release once the README/report are final.

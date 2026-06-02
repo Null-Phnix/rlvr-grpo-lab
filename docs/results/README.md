@@ -25,8 +25,9 @@ Every result promoted in the README should have a config path, output path, summ
 ## Files
 
 - `boundary_sft_v4_source_finalline_384_stopaware/`: current promoted v4 summaries, failure analyses, and comparisons for the 128 gate and 512 check.
-- `7b_base_strict_stopaware_384/`: 7B no-adapter summaries and failure analyses for the 512-example check and full GSM8K test split.
-- `7b_source_finalline_boundary_sft_128/`: 7B base, pseudo-label, source-final-line dataset, adapter gate, and base-vs-adapter comparison evidence.
+- `boundary_sft_v4_source_finalline_384_stopaware/bootstrap_vs_boundary_sft_v1_512.json`: paired bootstrap check showing the v4 512-example exact delta is small but the final-line improvement is stable.
+- `7b_base_strict_stopaware_384/`: 7B no-adapter summaries, failure analyses, and full-test failure taxonomy.
+- `7b_source_finalline_boundary_sft_128/`: 7B base, pseudo-label, source-final-line dataset, adapter gate, base-vs-adapter comparison evidence, and paired bootstrap rejection check.
 - `boundary_sft_v2_scaleup_diagnostics/`: decision-critical evidence for rejected v2/v3 scale-up branches and the stricter v4 dataset filter.
 - `current_promoted_baseline/`: previous summary and failure analysis for boundary SFT 384 stop-aware.
 - `boundary_sft_384_raw/`: raw-generation control for the same adapter and token budget.

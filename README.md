@@ -12,7 +12,8 @@ The strongest read is:
 
 - 3B needed answer-boundary self-distillation. The promoted source-final-line boundary SFT branch scored `429/512` exact, `361/512` strict final line, and `0/512` trailing text.
 - 7B did not need boundary SFT. The base model scored `1164/1319` exact, `1296/1319` strict final line, and `0/1319` trailing text on the full GSM8K test split.
-- The remaining 7B errors are mostly math/reasoning errors, not answer-boundary errors.
+- The remaining 7B errors are mostly math/reasoning errors, not answer-boundary errors: `149/155` wrong full-test examples still had a clean final answer line.
+- Paired bootstrap checks support the conservative wording: the 3B v4 final-line gain is stable, while its exact delta is small; the 7B adapter exact delta remains negative after tolerant rescore.
 
 Portfolio report: [`docs/reports/rlvr_grpo_lab_v1_report.md`](docs/reports/rlvr_grpo_lab_v1_report.md)
 
