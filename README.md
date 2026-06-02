@@ -71,11 +71,13 @@ The 3B source-final-line recipe did not transfer cleanly to `Qwen/Qwen2.5-7B-Ins
 
 | Run | Exact | Strict Final Line | Trailing Text | Avg Chars | Read |
 | --- | ---: | ---: | ---: | ---: | --- |
-| 7B base strict stop-aware 384-token eval | 114/128 | 125/128 | 0/128 | 450.89 | Strong base model; already follows the answer contract. |
+| 7B base strict stop-aware 384-token eval, 128 gate | 114/128 | 125/128 | 0/128 | 450.89 | Strong base model; already follows the answer contract. |
+| 7B base strict stop-aware 384-token eval, 512 check | 455/512 | 502/512 | 0/512 | 434.59 | Larger no-adapter check stayed stable. |
+| 7B base strict stop-aware 384-token eval, full test split | 1164/1319 | 1296/1319 | 0/1319 | 436.98 | Full GSM8K test-split reference for the 7B base policy. |
 | 7B source-final-line pseudo-label pass | 1918/2048 | 2012/2048 | 0/2048 | 426.56 | Very clean pseudo-label source; filter kept 1895 examples. |
 | 7B source-final-line SFT 128 gate | 109/128 | 127/128 | 0/128 | 418.04 | Rejected: only +2 final-line cases, but -5 exact answers vs base. |
 
-Sample comparison shows 2 exact wins and 7 exact losses vs the 7B base model. One loss is a numeric-normalization edge case (`5.000000000000001` vs `5`), but even crediting it manually leaves the adapter behind the base model. The current read is that 7B already has the boundary behavior that 3B needed SFT to learn, so the same SFT pressure mostly causes reasoning drift.
+Sample comparison shows 2 exact wins and 7 exact losses vs the 7B base model. After the tolerant numeric scorer, the rejected adapter moves from `109/128` to `110/128`, still below the base model's `114/128`. The current read is that 7B already has the boundary behavior that 3B needed SFT to learn, so the same SFT pressure mostly causes reasoning drift. The 512 and full no-adapter checks make the 7B base policy the current reference point for 7B work.
 
 ## Latest Base-Policy Experiment
 

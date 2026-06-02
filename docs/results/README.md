@@ -10,6 +10,8 @@ Every result promoted in the README should have a config path, output path, summ
 | --- | --- | ---: | ---: | ---: | --- |
 | Boundary SFT v4 source-final-line 384 stop-aware | `outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_512` | 429/512 | 361/512 | 0/512 | Current promoted 3B branch; no observed exact loss and much cleaner final-line format. |
 | Boundary SFT v4 source-final-line 128 gate | `outputs/evals/cloud_3b_boundary_sft_v4_source_finalline_strict_stopaware_384_128` | 107/128 | 86/128 | 0/128 | Matches the previous 128-example exact score with better answer-contract format. |
+| 7B base strict stop-aware full test split | `outputs/evals/cloud_7b_strict_stopaware_384_full` | 1164/1319 | 1296/1319 | 0/1319 | Full GSM8K no-adapter reference for 7B work. |
+| 7B base strict stop-aware 512 check | `outputs/evals/cloud_7b_strict_stopaware_384_512` | 455/512 | 502/512 | 0/512 | Larger no-adapter check after rejecting 7B boundary SFT. |
 | 7B base strict stop-aware 128 gate | `outputs/evals/cloud_7b_strict_stopaware_384_128` | 114/128 | 125/128 | 0/128 | 7B baseline for the source-final-line transfer test. |
 | 7B source-final-line boundary SFT 128 gate | `outputs/evals/cloud_7b_boundary_sft_v2_source_finalline_strict_stopaware_384_128` | 109/128 | 127/128 | 0/128 | Rejected: small final-line gain, -5 exact answers vs 7B base. |
 | Previous boundary SFT 384 stop-aware | `outputs/evals/cloud_3b_boundary_sft_strict_stopaware_384_128` | 107/128 | 62/128 | 0/128 | Previous promoted baseline. |
@@ -23,6 +25,7 @@ Every result promoted in the README should have a config path, output path, summ
 ## Files
 
 - `boundary_sft_v4_source_finalline_384_stopaware/`: current promoted v4 summaries, failure analyses, and comparisons for the 128 gate and 512 check.
+- `7b_base_strict_stopaware_384/`: 7B no-adapter summaries and failure analyses for the 512-example check and full GSM8K test split.
 - `7b_source_finalline_boundary_sft_128/`: 7B base, pseudo-label, source-final-line dataset, adapter gate, and base-vs-adapter comparison evidence.
 - `boundary_sft_v2_scaleup_diagnostics/`: decision-critical evidence for rejected v2/v3 scale-up branches and the stricter v4 dataset filter.
 - `current_promoted_baseline/`: previous summary and failure analysis for boundary SFT 384 stop-aware.

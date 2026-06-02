@@ -94,21 +94,32 @@ Result:
 
 Conclusion: rejected. The 7B base model already follows the answer contract well, so this SFT branch mostly adds reasoning drift for only two additional strict-final-line cases.
 
-## Next Phase: 7B Base 512/Full Eval
+## Completed 7B Base 512/Full Eval
 
-The next GPU work is a stronger no-adapter 7B baseline, not more boundary SFT:
+The stronger no-adapter 7B baseline is complete. Reproduce the 512-example check with:
 
 ```bash
 bash scripts/run_gpu_7b_base_eval.sh
 ```
 
-If the 512 run is healthy and the pod budget is acceptable, run the full GSM8K test split:
+Reproduce the full GSM8K test split with:
 
 ```bash
 bash scripts/run_gpu_7b_base_eval.sh --full
 ```
 
-These use the strict prompt, 384-token generation budget, and stop-aware postprocessing. Use the tolerant numeric scorer from `rlvr_lab.rewards.answers_match`.
+These use the strict prompt, 384-token generation budget, stop-aware postprocessing, and the tolerant numeric scorer from `rlvr_lab.rewards.answers_match`.
+
+Results:
+
+- 512 check: `455/512` exact, `502/512` strict final line, `0/512` trailing
+- full test split: `1164/1319` exact, `1296/1319` strict final line, `0/1319` trailing
+
+Conclusion: the 7B base policy is the current 7B reference. Do not spend more GPU on boundary SFT unless the target changes beyond final-line cleanup.
+
+## Next Phase: 7B Error Analysis
+
+Before launching another training run, inspect the full-test failures and decide whether the project needs broader eval coverage or a genuinely new training objective. A useful next step is to summarize the wrong examples by failure type and compare the base 7B full-test failures against the rejected 7B adapter's 128-gate losses.
 
 ## 7B Commands For Reproduction
 
