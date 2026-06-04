@@ -16,6 +16,31 @@ The strongest read is:
 - Paired bootstrap checks support the conservative wording: the 3B v4 final-line gain is stable, while its exact delta is small; the 7B adapter exact delta remains negative after tolerant rescore.
 
 Portfolio report: [`docs/reports/rlvr_grpo_lab_v1_report.md`](docs/reports/rlvr_grpo_lab_v1_report.md)
+Representative samples: [`docs/reports/sample_gallery.md`](docs/reports/sample_gallery.md)
+
+## Results At A Glance
+
+| Question | Result | Evidence |
+| --- | --- | --- |
+| Can a 3B model learn cleaner answer boundaries without observed exact-accuracy loss? | Yes, with source-final-line boundary SFT: `429/512` exact, `361/512` strict final line, `0/512` trailing text. | [`summary_512.json`](docs/results/boundary_sft_v4_source_finalline_384_stopaware/summary_512.json), [`bootstrap_vs_boundary_sft_v1_512.json`](docs/results/boundary_sft_v4_source_finalline_384_stopaware/bootstrap_vs_boundary_sft_v1_512.json) |
+| Did the same boundary-SFT recipe transfer to 7B? | No. The 7B adapter moved to `110/128` exact after tolerant rescore vs the base model's `114/128`, with only a small format gain. | [`comparison_vs_7b_base_384_128.md`](docs/results/7b_source_finalline_boundary_sft_128/comparison_vs_7b_base_384_128.md), [`bootstrap_adapter_vs_base_rescore_tol1e9.json`](docs/results/7b_source_finalline_boundary_sft_128/bootstrap_adapter_vs_base_rescore_tol1e9.json) |
+| Are remaining 7B errors mainly boundary errors? | Mostly no. On the full GSM8K test split, `149/155` wrong examples had a clean final-answer line. | [`failure_taxonomy_full.json`](docs/results/7b_base_strict_stopaware_384/failure_taxonomy_full.json) |
+
+## Experiment Map
+
+```mermaid
+flowchart LR
+  A["Base 3B strict prompt"] --> B["Rationale SFT"]
+  B --> C["GRPO variants"]
+  A --> D["Stop-aware eval"]
+  D --> E["Boundary SFT"]
+  E --> F["v4 source-final-line filter"]
+  F --> G["Promoted 3B branch"]
+  G --> H["7B transfer test"]
+  H --> I["Rejected 7B adapter"]
+  H --> J["7B base 512/full eval"]
+  J --> K["Failure taxonomy"]
+```
 
 ## Current Promoted Baseline
 
@@ -74,6 +99,7 @@ Detailed records:
 
 - [Experiment ledger](docs/runs/experiment_ledger.md)
 - [v1 project report](docs/reports/rlvr_grpo_lab_v1_report.md)
+- [Representative sample gallery](docs/reports/sample_gallery.md)
 - [Promoted result evidence](docs/results/README.md)
 - [Boundary SFT technical note](docs/technical_notes/boundary_sft.md)
 - [Next GPU runbook](docs/runbooks/next_gpu_runs.md)

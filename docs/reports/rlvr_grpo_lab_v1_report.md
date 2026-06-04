@@ -1,6 +1,6 @@
 # RLVR GRPO Lab v1 Report
 
-Status: v1 research run complete. The remaining work is presentation polish, broader eval coverage, and representative sample review.
+Status: v1 research run complete. The remaining work is broader eval coverage, release tagging, and optional project-page packaging.
 
 ## Summary
 
@@ -148,6 +148,7 @@ Relevant evidence:
 - `docs/results/boundary_sft_v4_source_finalline_384_stopaware/bootstrap_vs_boundary_sft_v1_512.json`
 - `docs/results/7b_source_finalline_boundary_sft_128/bootstrap_adapter_vs_base_rescore_tol1e9.json`
 - `docs/results/7b_base_strict_stopaware_384/failure_taxonomy_full.json`
+- `docs/reports/sample_gallery.md`
 
 ## Limitations
 
@@ -160,5 +161,5 @@ The 3B v4 result is best framed as answer-contract improvement with no observed 
 The next work should be broader evaluation and release polish, not another blind training run:
 
 1. Evaluate the final 3B and 7B policies on at least one non-GSM8K benchmark.
-2. Add a small, human-readable gallery of representative wins/losses.
-3. Tag a v0.1 release once the README/report are final.
+2. Tag a v0.1 release once the README/report are final.
+3. Package the result for `phnix.dev` with the report, sample gallery, and evidence links.
